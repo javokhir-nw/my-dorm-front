@@ -13,19 +13,19 @@ const loading = ref(false)
 
 async function handleLogin() {
   error.value = ''
-  
+
   if (!username.value || !password.value) {
     error.value = 'Username va parolni kiriting!'
     return
   }
 
   loading.value = true
-  
+
   const result = await authStore.login({
     username: username.value,
     password: password.value
   })
-  
+
   loading.value = false
 
   if (result.success) {
@@ -42,7 +42,7 @@ async function handleLogin() {
       <div class="logo">
         <h1 class="project-name">🏠 Mening yotoqxonam</h1>
       </div>
-      
+
       <h2>Kirish</h2>
       <p class="subtitle">Hisobingizga kiring</p>
 
@@ -50,22 +50,22 @@ async function handleLogin() {
         <div class="form-group">
           <label for="username">Username <span class="required">*</span></label>
           <input
-            id="username"
-            v-model="username"
-            type="text"
-            placeholder="Username kiriting"
-            required
+              id="username"
+              v-model="username"
+              type="text"
+              placeholder="Username kiriting"
+              required
           />
         </div>
 
         <div class="form-group">
           <label for="password">Parol <span class="required">*</span></label>
           <input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="Parolingizni kiriting"
-            required
+              id="password"
+              v-model="password"
+              type="password"
+              placeholder="Parolingizni kiriting"
+              required
           />
         </div>
 

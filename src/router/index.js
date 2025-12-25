@@ -6,50 +6,71 @@ import LoginPage from '../views/LoginPage.vue'
 import RegisterPage from '../views/RegisterPage.vue'
 import DashboardPage from '../views/DashboardPage.vue'
 import SettingsPage from '../views/SettingsPage.vue'
+import DormitoriesPage from '../views/DormitoriesPage.vue'
+import DormitoryDetailPage from '../views/DormitoryDetailPage.vue'
+import FloorDetailPage from '../views/FloorDetailPage.vue'
 
 const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: HomePage
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: LoginPage
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: RegisterPage
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: DashboardPage,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: SettingsPage,
-    meta: { requiresAuth: true }
-  }
+    {
+        path: '/',
+        name: 'Home',
+        component: HomePage
+    },
+    {
+        path: '/login',
+        name: 'Login',
+        component: LoginPage
+    },
+    {
+        path: '/register',
+        name: 'Register',
+        component: RegisterPage
+    },
+    {
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: DashboardPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/settings',
+        name: 'Settings',
+        component: SettingsPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/dormitories',
+        name: 'Dormitories',
+        component: DormitoriesPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/dormitory/:id',
+        name: 'DormitoryDetail',
+        component: DormitoryDetailPage,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/floor/:id',
+        name: 'FloorDetail',
+        component: FloorDetailPage,
+        meta: { requiresAuth: true }
+    }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes
+    history: createWebHistory(),
+    routes
 })
 
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
-  
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
-  } else {
-    next()
-  }
+    const authStore = useAuthStore()
+
+    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+        next('/login')
+    } else {
+        next()
+    }
 })
 
 export default router

@@ -17,16 +17,6 @@ function toggleMalumotnoma() {
   isMalumotnomaDrop.value = !isMalumotnomaDrop.value
 }
 
-function goToLogin() {
-  router.push('/login')
-  isMenuOpen.value = false
-}
-
-function goToRegister() {
-  router.push('/register')
-  isMenuOpen.value = false
-}
-
 function goToDashboard() {
   router.push('/dashboard')
   isMenuOpen.value = false
@@ -45,12 +35,12 @@ function goToDormitories() {
 
 function handleLogout() {
   authStore.logout()
-  isMenuOpen.value = false
+  router.push('/login')
 }
 </script>
 
 <template>
-  <div class="home-container">
+  <div>
     <!-- Hamburger Menu Button -->
     <button class="menu-button" @click="toggleMenu">
       <span class="hamburger-icon" :class="{ open: isMenuOpen }">
@@ -68,47 +58,36 @@ function handleLogout() {
       </div>
 
       <nav class="menu-nav">
-        <template v-if="authStore.isAuthenticated">
-          <div class="user-info-menu">
-            <p class="user-name">{{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}</p>
-            <p class="user-username">@{{ authStore.currentUser?.username }}</p>
-          </div>
+        <div class="user-info-menu">
+          <p class="user-name">{{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}</p>
+          <p class="user-username">@{{ authStore.currentUser?.username }}</p>
+        </div>
 
-          <button @click="goToDashboard" class="menu-item">
-            📊 Dashboard
+        <button @click="goToDashboard" class="menu-item">
+          📊 Dashboard
+        </button>
+
+        <!-- Ma'lumotnoma Dropdown -->
+        <div class="dropdown-wrapper">
+          <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
+            <span>📚 Ma'lumotnoma</span>
+            <span class="arrow" :class="{ rotated: isMalumotnomaDrop }">▼</span>
           </button>
 
-          <!-- Ma'lumotnoma Dropdown -->
-          <div class="dropdown-wrapper">
-            <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
-              <span>📚 Ma'lumotnoma</span>
-              <span class="arrow" :class="{ rotated: isMalumotnomaDrop }">▼</span>
+          <div v-show="isMalumotnomaDrop" class="dropdown-menu">
+            <button @click="goToDormitories" class="dropdown-item">
+              🏢 Yotoqxonalar
             </button>
-
-            <div v-show="isMalumotnomaDrop" class="dropdown-menu">
-              <button @click="goToDormitories" class="dropdown-item">
-                🏢 Yotoqxonalar
-              </button>
-            </div>
           </div>
+        </div>
 
-          <button @click="goToSettings" class="menu-item">
-            ⚙️ Sozlamalar
-          </button>
+        <button @click="goToSettings" class="menu-item">
+          ⚙️ Sozlamalar
+        </button>
 
-          <button @click="handleLogout" class="menu-item logout">
-            🚪 Chiqish
-          </button>
-        </template>
-
-        <template v-else>
-          <button @click="goToLogin" class="menu-item">
-            🔐 Kirish
-          </button>
-          <button @click="goToRegister" class="menu-item">
-            📝 Ro'yxatdan o'tish
-          </button>
-        </template>
+        <button @click="handleLogout" class="menu-item logout">
+          🚪 Chiqish
+        </button>
       </nav>
     </div>
 
@@ -118,42 +97,10 @@ function handleLogout() {
         :class="{ show: isMenuOpen }"
         @click="toggleMenu"
     ></div>
-
-    <!-- Main Content -->
-    <div class="hero">
-      <h1 class="project-name">🏠 Mening yotoqxonam</h1>
-      <p class="tagline">Yotoqxona boshqaruv tizimi</p>
-
-      <div v-if="authStore.isAuthenticated" class="logged-in">
-        <p>Salom, {{ authStore.currentUser?.firstName }}! 👋</p>
-        <button @click="goToDashboard" class="btn btn-primary">
-          Dashboard ga o'tish
-        </button>
-      </div>
-
-      <div v-else class="action-buttons">
-        <button @click="goToLogin" class="btn btn-primary">
-          Kirish
-        </button>
-        <button @click="goToRegister" class="btn btn-secondary">
-          Ro'yxatdan o'tish
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
 <style scoped>
-.home-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow-x: hidden;
-}
-
 /* Hamburger Menu Button */
 .menu-button {
   position: fixed;
@@ -165,7 +112,7 @@ function handleLogout() {
   padding: 0.75rem;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   transition: all 0.3s;
 }
 
@@ -383,87 +330,7 @@ function handleLogout() {
   visibility: visible;
 }
 
-/* Hero Section */
-.hero {
-  text-align: center;
-  padding: 3rem 2rem;
-  color: white;
-  z-index: 1;
-  position: relative;
-}
-
-.project-name {
-  font-size: 3.5rem;
-  margin: 0 0 0.5rem 0;
-  font-weight: 700;
-}
-
-.tagline {
-  font-size: 1.3rem;
-  margin-bottom: 3rem;
-  opacity: 0.95;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.logged-in {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.logged-in p {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-}
-
-.btn {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-primary {
-  background: white;
-  color: #667eea;
-}
-
-.btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: white;
-  border: 2px solid white;
-}
-
-.btn-secondary:hover {
-  background: white;
-  color: #667eea;
-}
-
 @media (max-width: 768px) {
-  .project-name {
-    font-size: 2.5rem;
-  }
-
-  .tagline {
-    font-size: 1.1rem;
-  }
-
   .side-menu {
     width: 280px;
     left: -280px;

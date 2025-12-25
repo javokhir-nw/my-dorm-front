@@ -1,9 +1,10 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+  import { useRouter } from 'vue-router'
+  import { useAuthStore } from '../stores/auth'
+  import SideMenu from '../views/SideMenu.vue'
 
-const router = useRouter()
-const authStore = useAuthStore()
+  const router = useRouter()
+  const authStore = useAuthStore()
 
 function goBack() {
   router.push('/dashboard')
@@ -17,6 +18,7 @@ function handleLogout() {
 
 <template>
   <div class="settings-container">
+    <SideMenu />
     <div class="settings-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
@@ -123,6 +125,7 @@ function handleLogout() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  margin-left: 5%;
   background: white;
   padding: 1.5rem 2rem;
   border-radius: 12px;
