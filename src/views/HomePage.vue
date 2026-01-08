@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import SideMenu from "./SideMenu.vue";
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -61,57 +62,7 @@ function handleLogout() {
     </button>
 
     <!-- Side Menu -->
-    <div class="side-menu" :class="{ open: isMenuOpen }">
-      <div class="menu-header">
-        <h3>🏠 Menu</h3>
-        <button class="close-button" @click="toggleMenu">✕</button>
-      </div>
-
-      <nav class="menu-nav">
-        <template v-if="authStore.isAuthenticated">
-          <div class="user-info-menu">
-            <p class="user-name">{{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}</p>
-            <p class="user-username">@{{ authStore.currentUser?.username }}</p>
-          </div>
-
-          <button @click="goToDashboard" class="menu-item">
-            📊 Dashboard
-          </button>
-
-          <!-- Ma'lumotnoma Dropdown -->
-          <div class="dropdown-wrapper">
-            <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
-              <span>📚 Ma'lumotnoma</span>
-              <span class="arrow" :class="{ rotated: isMalumotnomaDrop }">▼</span>
-            </button>
-
-            <div v-show="isMalumotnomaDrop" class="dropdown-menu">
-              <button @click="goToDormitories" class="dropdown-item">
-                🏢 Yotoqxonalar
-              </button>
-            </div>
-          </div>
-
-          <button @click="goToSettings" class="menu-item">
-            ⚙️ Sozlamalar
-          </button>
-
-          <button @click="handleLogout" class="menu-item logout">
-            🚪 Chiqish
-          </button>
-        </template>
-
-        <template v-else>
-          <button @click="goToLogin" class="menu-item">
-            🔐 Kirish
-          </button>
-          <button @click="goToRegister" class="menu-item">
-            📝 Ro'yxatdan o'tish
-          </button>
-        </template>
-      </nav>
-    </div>
-
+    <SideMenu/>
     <!-- Overlay -->
     <div
         class="overlay"

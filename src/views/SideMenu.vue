@@ -33,6 +33,12 @@ function goToDormitories() {
   isMalumotnomaDrop.value = false
 }
 
+function goToUsers() {
+  router.push('/users')
+  isMenuOpen.value = false
+  isMalumotnomaDrop.value = false
+}
+
 function handleLogout() {
   authStore.logout()
   router.push('/login')
@@ -77,6 +83,9 @@ function handleLogout() {
           <div v-show="isMalumotnomaDrop" class="dropdown-menu">
             <button @click="goToDormitories" class="dropdown-item">
               🏢 Yotoqxonalar
+            </button>
+            <button @click="goToUsers" class="dropdown-item">
+              👥 Foydalanuvchilar
             </button>
           </div>
         </div>

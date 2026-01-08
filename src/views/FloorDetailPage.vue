@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import {ref, onMounted} from 'vue'
+import {useRouter, useRoute} from 'vue-router'
+import {useAuthStore} from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -14,8 +14,59 @@ const error = ref('')
 
 const floorId = route.params.id
 
+// Modal states
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const showSuccessModal = ref(false)
+
+// Room types
+const roomTypes = ref([])
+const loadingRoomTypes = ref(false)
+
+// Form data
+const createForm = ref({
+  number: '',
+  name: '',
+  floorId: floorId,
+  roomTypeId: null,
+  capacity: null,
+  isRoom: true
+})
+
+const editForm = ref({
+  id: 0,
+  number: '',
+  name: '',
+  floorId: floorId,
+  roomTypeId: null,
+  capacity: null,
+  isRoom: true
+})
+
+const deleteId = ref(null)
+
+// Success/Error message
+const modalMessage = ref({
+  title: '',
+  text: '',
+  type: 'success'
+})
+
+// Loading states for modals
+const createLoading = ref(false)
+const editLoading = ref(false)
+const deleteLoading = ref(false)
+
+// Form validation errors
+const formErrors = ref({
+  number: '',
+  name: '',
+  roomTypeId: '',
+  capacity: ''
+})
+
 function goBack() {
-  // Agar dormitoryId bo'lsa, yotoqxona sahifasiga qaytish
   if (floor.value?.dormitoryId) {
     router.push(`/dormitory/${floor.value.dormitoryId}`)
   } else {
@@ -50,8 +101,249 @@ async function fetchFloorDetail() {
   }
 }
 
+async function fetchRoomTypes() {
+  loadingRoomTypes.value = true
+
+  try {
+    const response = await authStore.makeAuthenticatedRequest(
+        'http://localhost:8080/api/room-type/list',
+        {
+          method: 'GET'
+        }
+    )
+
+    if (!response.ok) {
+      throw new Error('Xona turlarini yuklashda xatolik')
+    }
+
+    const data = await response.json()
+    roomTypes.value = data
+  } catch (err) {
+    console.error('Room types fetch error:', err)
+  } finally {
+    loadingRoomTypes.value = false
+  }
+}
+
 function viewRoom(roomId) {
   router.push(`/room/${roomId}`)
+}
+
+function showSuccessMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'success'
+  }
+  showSuccessModal.value = true
+}
+
+function showErrorMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'error'
+  }
+  showSuccessModal.value = true
+}
+
+function closeSuccessModal() {
+  showSuccessModal.value = false
+}
+
+function clearFormErrors() {
+  formErrors.value = {
+    number: '',
+    name: '',
+    roomTypeId: '',
+    capacity: ''
+  }
+}
+
+function validateForm(form) {
+  clearFormErrors()
+  let isValid = true
+
+  if (!form.number || !form.number.trim()) {
+    formErrors.value.number = 'Xona raqamini kiriting!'
+    isValid = false
+  }
+
+  if (!form.roomTypeId) {
+    formErrors.value.roomTypeId = 'Xona turini tanlang!'
+    isValid = false
+  }
+
+  // Capacity validation only for bedroom (isRoom = true)
+  if (form.isRoom) {
+    if (!form.capacity || form.capacity < 1) {
+      formErrors.value.capacity = 'Yotoq xonasi uchun sig\'imni kiriting!'
+      isValid = false
+    }
+  }
+
+  return isValid
+}
+
+// Create Room
+async function openCreateModal() {
+  createForm.value = {
+    number: '',
+    name: '',
+    floorId: floorId,
+    roomTypeId: null,
+    capacity: null,
+    isRoom: true
+  }
+  clearFormErrors()
+
+  if (roomTypes.value.length === 0) {
+    await fetchRoomTypes()
+  }
+
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+  clearFormErrors()
+}
+
+async function createRoom() {
+  if (!validateForm(createForm.value)) {
+    return
+  }
+
+  createLoading.value = true
+
+  try {
+    const requestBody = {
+      number: createForm.value.number.trim(),
+      name: createForm.value.name.trim(),
+      floorId: parseInt(floorId),
+      roomTypeId: createForm.value.roomTypeId,
+      isRoom: createForm.value.isRoom
+    }
+
+    // Add capacity only if it's a bedroom
+    if (createForm.value.isRoom && createForm.value.capacity) {
+      requestBody.capacity = parseInt(createForm.value.capacity)
+    }
+
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/create', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      throw new Error('Xona yaratishda xatolik')
+    }
+
+    closeCreateModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yaratildi')
+    fetchFloorDetail()
+  } catch (err) {
+    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+  } finally {
+    createLoading.value = false
+  }
+}
+
+// Edit Room
+async function openEditModal(room) {
+  editForm.value = {
+    id: room.id,
+    number: room.number,
+    name: room.name,
+    floorId: floorId,
+    roomTypeId: room.roomTypeId,
+    capacity: room.capacity || null,
+    isRoom: room.isRoom !== undefined ? room.isRoom : true
+  }
+  clearFormErrors()
+
+  if (roomTypes.value.length === 0) {
+    await fetchRoomTypes()
+  }
+
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  clearFormErrors()
+}
+
+async function updateRoom() {
+  if (!validateForm(editForm.value)) {
+    return
+  }
+
+  editLoading.value = true
+
+  try {
+    const requestBody = {
+      id: editForm.value.id,
+      number: editForm.value.number.trim(),
+      name: editForm.value.name.trim(),
+      floorId: parseInt(floorId),
+      roomTypeId: editForm.value.roomTypeId,
+    }
+
+
+    requestBody.capacity = parseInt(editForm.value.capacity)
+
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/update', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      throw new Error('Xonani yangilashda xatolik')
+    }
+
+    closeEditModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yangilandi')
+    fetchFloorDetail()
+  } catch (err) {
+    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+  } finally {
+    editLoading.value = false
+  }
+}
+
+// Delete Room
+function openDeleteModal(id) {
+  deleteId.value = id
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  deleteId.value = null
+}
+
+async function deleteRoom() {
+  deleteLoading.value = true
+
+  try {
+    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/room/delete/${deleteId.value}`, {
+      method: 'DELETE'
+    })
+
+    if (!response.ok) {
+      throw new Error('Xonani o\'chirishda xatolik')
+    }
+
+    closeDeleteModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli o\'chirildi')
+    fetchFloorDetail()
+  } catch (err) {
+    closeDeleteModal()
+    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -61,13 +353,14 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <SideMenu />
+    <SideMenu/>
 
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
         <h1>🏢 Qavat ma'lumotlari</h1>
       </div>
+      <button v-if="floor" @click="openCreateModal" class="btn-create">+ Xona qo'shish</button>
     </div>
 
     <div class="page-content">
@@ -122,20 +415,13 @@ onMounted(() => {
                 v-for="room in floor.rooms"
                 :key="room.id"
                 class="room-card"
-                @click="viewRoom(room.id)"
             >
               <div class="room-header">
                 <div class="room-number">{{ room.number }}</div>
-                <div class="room-type-badge">{{ room.roomTypeName }}</div>
               </div>
 
               <div class="room-body">
-                <div class="room-info-item">
-                  <span class="room-label">Xona nomi:</span>
-                  <span class="room-value">{{ room.name }}</span>
-                </div>
-
-                <div class="room-info-item">
+                <div class="room-info-item" v-if="room.capacity">
                   <span class="room-label">Sig'im:</span>
                   <span class="room-value">{{ room.capacity }} kishi</span>
                 </div>
@@ -147,7 +433,9 @@ onMounted(() => {
               </div>
 
               <div class="room-footer">
-                <button class="btn-view-room">Ko'rish →</button>
+                <button @click="viewRoom(room.id)" class="btn-view-room">Ko'rish →</button>
+                <button @click.stop="openEditModal(room)" class="btn-edit-room">✏️</button>
+                <button @click.stop="openDeleteModal(room.id)" class="btn-delete-room">🗑️</button>
               </div>
             </div>
           </div>
@@ -155,7 +443,176 @@ onMounted(() => {
           <div v-else class="empty-rooms">
             <div class="empty-icon">📭</div>
             <p>Bu qavatda xonalar mavjud emas</p>
+            <button @click="openCreateModal" class="btn-add-first">+ Birinchi xonani qo'shish</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Modal -->
+    <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
+      <div class="modal modal-large">
+        <div class="modal-header">
+          <h2>🚪 Yangi Xona Qo'shish</h2>
+          <button @click="closeCreateModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Xona raqami *</label>
+            <input
+                v-model="createForm.number"
+                type="text"
+                placeholder="Masalan: 101"
+                class="form-input"
+                :class="{ 'input-error': formErrors.number }"
+                @input="formErrors.number = ''"
+            />
+            <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Xona turi *</label>
+            <select
+                v-model="createForm.roomTypeId"
+                class="form-select"
+                :class="{ 'input-error': formErrors.roomTypeId }"
+                @change="formErrors.roomTypeId = ''"
+            >
+              <option :value="null" disabled>Xona turini tanlang</option>
+              <option v-for="type in roomTypes" :key="type.id" :value="type.id">
+                {{ type.name }}
+              </option>
+            </select>
+            <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
+          </div>
+
+          <div class="form-group" v-if="createForm.isRoom">
+            <label>Sig'im (necha kishilik) *</label>
+            <input
+                v-model.number="createForm.capacity"
+                type="number"
+                min="1"
+                placeholder="Masalan: 4"
+                class="form-input"
+                :class="{ 'input-error': formErrors.capacity }"
+                @input="formErrors.capacity = ''"
+            />
+            <p v-if="formErrors.capacity" class="error-message">{{ formErrors.capacity }}</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
+            Bekor qilish
+          </button>
+          <button @click="createRoom" class="btn-submit" :disabled="createLoading">
+            <span v-if="createLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+      <div class="modal modal-large">
+        <div class="modal-header">
+          <h2>✏️ Xonani Tahrirlash</h2>
+          <button @click="closeEditModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Xona raqami *</label>
+            <input
+                v-model="editForm.number"
+                type="text"
+                placeholder="Masalan: 101"
+                class="form-input"
+                :class="{ 'input-error': formErrors.number }"
+                @input="formErrors.number = ''"
+            />
+            <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Xona turi *</label>
+            <select
+                v-model="editForm.roomTypeId"
+                class="form-select"
+                :class="{ 'input-error': formErrors.roomTypeId }"
+                @change="formErrors.roomTypeId = ''"
+            >
+              <option :value="null" disabled>Xona turini tanlang</option>
+              <option v-for="type in roomTypes" :key="type.id" :value="type.id">
+                {{ type.name }}
+              </option>
+            </select>
+            <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
+          </div>
+
+          <div class="form-group" v-if="editForm.isRoom">
+            <label>Sig'im (necha kishilik) *</label>
+            <input
+                v-model.number="editForm.capacity"
+                type="number"
+                min="1"
+                placeholder="Masalan: 4"
+                class="form-input"
+                :class="{ 'input-error': formErrors.capacity }"
+                @input="formErrors.capacity = ''"
+            />
+            <p v-if="formErrors.capacity" class="error-message">{{ formErrors.capacity }}</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">
+            Bekor qilish
+          </button>
+          <button @click="updateRoom" class="btn-submit" :disabled="editLoading">
+            <span v-if="editLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal modal-small">
+        <div class="modal-header">
+          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <button @click="closeDeleteModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="delete-warning">
+            Haqiqatan ham ushbu xonani o'chirmoqchimisiz?
+            <br><strong>Bu amalni ortga qaytarib bo'lmaydi!</strong>
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeDeleteModal" class="btn-cancel" :disabled="deleteLoading">
+            Bekor qilish
+          </button>
+          <button @click="deleteRoom" class="btn-delete-confirm" :disabled="deleteLoading">
+            <span v-if="deleteLoading">O'chirilmoqda...</span>
+            <span v-else>O'chirish</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success/Error Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeSuccessModal">
+      <div class="modal modal-message">
+        <div class="modal-body message-body">
+          <div :class="['message-icon', `icon-${modalMessage.type}`]">
+            <span v-if="modalMessage.type === 'success'">✓</span>
+            <span v-else>✕</span>
+          </div>
+          <h3 class="message-title">{{ modalMessage.title }}</h3>
+          <p class="message-text">{{ modalMessage.text }}</p>
+          <button @click="closeSuccessModal" class="btn-message-ok">
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -163,6 +620,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Previous styles remain the same... I'll only show the new/modified ones */
+
 .page-container {
   min-height: 100vh;
   background: #f5f7fa;
@@ -209,6 +668,22 @@ onMounted(() => {
   font-size: 1.8rem;
 }
 
+.btn-create {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 1rem;
+}
+
+.btn-create:hover {
+  background: #059669;
+}
+
 .page-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -233,8 +708,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error */
@@ -364,7 +843,6 @@ onMounted(() => {
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   transition: all 0.3s;
-  cursor: pointer;
   overflow: hidden;
 }
 
@@ -426,10 +904,12 @@ onMounted(() => {
   padding: 1rem 1.5rem;
   background: white;
   border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .btn-view-room {
-  width: 100%;
+  flex: 1;
   padding: 0.75rem;
   background: #667eea;
   color: white;
@@ -442,6 +922,36 @@ onMounted(() => {
 
 .btn-view-room:hover {
   background: #5568d3;
+}
+
+.btn-edit-room {
+  padding: 0.75rem 1rem;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-edit-room:hover {
+  background: #d97706;
+}
+
+.btn-delete-room {
+  padding: 0.75rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-delete-room:hover {
+  background: #dc2626;
 }
 
 /* Empty State */
@@ -457,7 +967,312 @@ onMounted(() => {
 
 .empty-rooms p {
   color: #666;
+  margin: 0 0 1.5rem 0;
+}
+
+.btn-add-first {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-add-first:hover {
+  background: #059669;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-small {
+  max-width: 400px;
+}
+
+.modal-large {
+  max-width: 600px;
+}
+
+.modal-message {
+  max-width: 400px;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.modal-header h2 {
   margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.3s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-input.input-error, .form-select.input-error {
+  border-color: #ef4444;
+}
+
+.form-select {
+  cursor: pointer;
+  background: white;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.checkbox-label:hover {
+  background: #e9ecef;
+}
+
+.form-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkbox-text strong {
+  color: #333;
+  font-size: 1rem;
+}
+
+.checkbox-text small {
+  color: #666;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.delete-warning {
+  color: #ef4444;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-delete-confirm {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-delete-confirm:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-delete-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success/Error Message Modal */
+.message-body {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.message-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.icon-success {
+  background: #d1fae5;
+  color: #10b981;
+}
+
+.icon-error {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.message-title {
+  color: #333;
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.message-text {
+  color: #666;
+  font-size: 1rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.btn-message-ok {
+  padding: 0.75rem 2rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+
+.btn-message-ok:hover {
+  background: #5568d3;
 }
 
 @media (max-width: 768px) {
@@ -479,6 +1294,10 @@ onMounted(() => {
     font-size: 1.4rem;
   }
 
+  .btn-create {
+    width: 100%;
+  }
+
   .info-header {
     flex-direction: column;
     text-align: center;
@@ -491,6 +1310,15 @@ onMounted(() => {
 
   .rooms-grid {
     grid-template-columns: 1fr;
+  }
+
+  .room-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal {
+    width: 95%;
+    margin: 1rem;
   }
 }
 </style>

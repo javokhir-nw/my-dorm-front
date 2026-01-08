@@ -15,8 +15,41 @@ const error = ref('')
 
 // Search and pagination parameters
 const searchQuery = ref('')
-const currentPage = ref(0)
+const currentPage = ref(1)
 const pageSize = ref(10)
+
+// Modal states
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const showSuccessModal = ref(false)
+
+// Form data
+const createForm = ref({
+  name: ''
+})
+
+const editForm = ref({
+  id: 0,
+  name: ''
+})
+
+const deleteId = ref(null)
+
+// Success/Error message
+const modalMessage = ref({
+  title: '',
+  text: '',
+  type: 'success' // success or error
+})
+
+// Loading states for modals
+const createLoading = ref(false)
+const editLoading = ref(false)
+const deleteLoading = ref(false)
+
+// Form validation error
+const formError = ref('')
 
 function goBack() {
   router.push('/dashboard')
@@ -30,7 +63,7 @@ async function fetchDormitories() {
     const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
       method: 'POST',
       body: JSON.stringify({
-        page: currentPage.value,
+        page: currentPage.value - 1,
         size: pageSize.value,
         search: {
           value: searchQuery.value || ''
@@ -77,6 +110,155 @@ function viewDormitory(id) {
   router.push(`/dormitory/${id}`)
 }
 
+function showSuccessMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'success'
+  }
+  showSuccessModal.value = true
+}
+
+function showErrorMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'error'
+  }
+  showSuccessModal.value = true
+}
+
+function closeSuccessModal() {
+  showSuccessModal.value = false
+}
+
+// Create Dormitory
+function openCreateModal() {
+  createForm.value.name = ''
+  formError.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+  createForm.value.name = ''
+  formError.value = ''
+}
+
+async function createDormitory() {
+  formError.value = ''
+
+  if (!createForm.value.name.trim()) {
+    formError.value = 'Iltimos, yotoqxona nomini kiriting!'
+    return
+  }
+
+  createLoading.value = true
+
+  try {
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: createForm.value.name.trim()
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Yotoqxona yaratishda xatolik')
+    }
+
+    closeCreateModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yaratildi')
+    fetchDormitories()
+  } catch (err) {
+    formError.value = err.message || 'Xatolik yuz berdi!'
+  } finally {
+    createLoading.value = false
+  }
+}
+
+// Edit Dormitory
+function openEditModal(dorm) {
+  editForm.value.id = dorm.id
+  editForm.value.name = dorm.name
+  formError.value = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editForm.value.id = 0
+  editForm.value.name = ''
+  formError.value = ''
+}
+
+async function updateDormitory() {
+  formError.value = ''
+
+  if (!editForm.value.name.trim()) {
+    formError.value = 'Iltimos, yotoqxona nomini kiriting!'
+    return
+  }
+
+  editLoading.value = true
+
+  try {
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: editForm.value.id,
+        name: editForm.value.name.trim()
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Yotoqxonani yangilashda xatolik')
+    }
+
+    closeEditModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yangilandi')
+    fetchDormitories()
+  } catch (err) {
+    formError.value = err.message || 'Xatolik yuz berdi!'
+  } finally {
+    editLoading.value = false
+  }
+}
+
+// Delete Dormitory
+function openDeleteModal(id) {
+  deleteId.value = id
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  deleteId.value = null
+}
+
+async function deleteDormitory() {
+  deleteLoading.value = true
+
+  try {
+    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/dorm/delete/${deleteId.value}`, {
+      method: 'DELETE'
+    })
+
+    if (!response.ok) {
+      throw new Error('Yotoqxonani o\'chirishda xatolik')
+    }
+
+    closeDeleteModal()
+    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli o\'chirildi')
+    fetchDormitories()
+  } catch (err) {
+    closeDeleteModal()
+    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchDormitories()
 })
@@ -91,6 +273,7 @@ onMounted(() => {
         <button @click="goBack" class="back-button">← Orqaga</button>
         <h1>🏢 Yotoqxonalar</h1>
       </div>
+      <button @click="openCreateModal" class="btn-create">+ Yangi qo'shish</button>
     </div>
 
     <!-- Search Bar -->
@@ -147,7 +330,6 @@ onMounted(() => {
               v-for="dorm in dormitories"
               :key="dorm.id"
               class="dormitory-card"
-              @click="viewDormitory(dorm.id)"
           >
             <div class="card-header">
               <div class="card-icon">🏢</div>
@@ -179,7 +361,9 @@ onMounted(() => {
             </div>
 
             <div class="card-footer">
-              <button class="btn-view">Ko'rish →</button>
+              <button @click="viewDormitory(dorm.id)" class="btn-view">Ko'rish →</button>
+              <button @click.stop="openEditModal(dorm)" class="btn-edit">✏️ Tahrirlash</button>
+              <button @click.stop="openDeleteModal(dorm.id)" class="btn-delete">🗑️ O'chirish</button>
             </div>
           </div>
         </div>
@@ -211,6 +395,116 @@ onMounted(() => {
               class="pagination-btn"
           >
             Keyingi →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Modal -->
+    <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>🏢 Yangi Yotoqxona Qo'shish</h2>
+          <button @click="closeCreateModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Yotoqxona nomi *</label>
+            <input
+                v-model="createForm.name"
+                type="text"
+                placeholder="Yotoqxona nomini kiriting"
+                class="form-input"
+                :class="{ 'input-error': formError }"
+                @keyup.enter="createDormitory"
+                @input="formError = ''"
+            />
+            <p v-if="formError" class="error-message">{{ formError }}</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
+            Bekor qilish
+          </button>
+          <button @click="createDormitory" class="btn-submit" :disabled="createLoading">
+            <span v-if="createLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>✏️ Yotoqxonani Tahrirlash</h2>
+          <button @click="closeEditModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Yotoqxona nomi *</label>
+            <input
+                v-model="editForm.name"
+                type="text"
+                placeholder="Yotoqxona nomini kiriting"
+                class="form-input"
+                :class="{ 'input-error': formError }"
+                @keyup.enter="updateDormitory"
+                @input="formError = ''"
+            />
+            <p v-if="formError" class="error-message">{{ formError }}</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">
+            Bekor qilish
+          </button>
+          <button @click="updateDormitory" class="btn-submit" :disabled="editLoading">
+            <span v-if="editLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal modal-small">
+        <div class="modal-header">
+          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <button @click="closeDeleteModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="delete-warning">
+            Haqiqatan ham ushbu yotoqxonani o'chirmoqchimisiz?
+            <br>Bu amalni ortga qaytarib bo'lmaydi!
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeDeleteModal" class="btn-cancel" :disabled="deleteLoading">
+            Bekor qilish
+          </button>
+          <button @click="deleteDormitory" class="btn-delete-confirm" :disabled="deleteLoading">
+            <span v-if="deleteLoading">O'chirilmoqda...</span>
+            <span v-else>O'chirish</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success/Error Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeSuccessModal">
+      <div class="modal modal-message">
+        <div class="modal-body message-body">
+          <div :class="['message-icon', `icon-${modalMessage.type}`]">
+            <span v-if="modalMessage.type === 'success'">✓</span>
+            <span v-else>✕</span>
+          </div>
+          <h3 class="message-title">{{ modalMessage.title }}</h3>
+          <p class="message-text">{{ modalMessage.text }}</p>
+          <button @click="closeSuccessModal" class="btn-message-ok">
+            OK
           </button>
         </div>
       </div>
@@ -263,6 +557,22 @@ onMounted(() => {
   margin: 0;
   color: #333;
   font-size: 1.8rem;
+}
+
+.btn-create {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 1rem;
+}
+
+.btn-create:hover {
+  background: #059669;
 }
 
 /* Search Bar */
@@ -424,7 +734,6 @@ onMounted(() => {
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
-  cursor: pointer;
   overflow: hidden;
 }
 
@@ -445,14 +754,6 @@ onMounted(() => {
 .card-icon {
   font-size: 2rem;
   margin-right: 7px;
-}
-
-.card-id {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
 }
 
 .card-body {
@@ -491,10 +792,12 @@ onMounted(() => {
 .card-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .btn-view {
-  width: 100%;
+  flex: 1;
   padding: 0.75rem;
   background: #667eea;
   color: white;
@@ -507,6 +810,36 @@ onMounted(() => {
 
 .btn-view:hover {
   background: #5568d3;
+}
+
+.btn-edit {
+  padding: 0.75rem 1rem;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-edit:hover {
+  background: #d97706;
+}
+
+.btn-delete {
+  padding: 0.75rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
 }
 
 /* Pagination */
@@ -568,15 +901,244 @@ onMounted(() => {
   color: white;
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-small {
+  max-width: 400px;
+}
+
+.modal-message {
+  max-width: 400px;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.3s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-input.input-error {
+  border-color: #ef4444;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.delete-warning {
+  color: #ef4444;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-delete-confirm {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-delete-confirm:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-delete-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success/Error Message Modal */
+.message-body {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.message-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.icon-success {
+  background: #d1fae5;
+  color: #10b981;
+}
+
+.icon-error {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.message-title {
+  color: #333;
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.message-text {
+  color: #666;
+  font-size: 1rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.btn-message-ok {
+  padding: 0.75rem 2rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+
+.btn-message-ok:hover {
+  background: #5568d3;
+}
+
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
-    padding-left: 1rem;
   }
 
   .page-header {
     flex-direction: column;
     gap: 1rem;
+    margin-left: 0;
   }
 
   .header-left {
@@ -587,12 +1149,20 @@ onMounted(() => {
     font-size: 1.4rem;
   }
 
+  .btn-create {
+    width: 100%;
+  }
+
   .search-box {
     flex-direction: column;
   }
 
   .dormitories-grid {
     grid-template-columns: 1fr;
+  }
+
+  .card-footer {
+    flex-direction: column;
   }
 
   .pagination {
@@ -602,6 +1172,11 @@ onMounted(() => {
   .pagination-numbers {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .modal {
+    width: 95%;
+    margin: 1rem;
   }
 }
 </style>

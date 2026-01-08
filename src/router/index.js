@@ -9,6 +9,7 @@ import SettingsPage from '../views/SettingsPage.vue'
 import DormitoriesPage from '../views/DormitoriesPage.vue'
 import DormitoryDetailPage from '../views/DormitoryDetailPage.vue'
 import FloorDetailPage from '../views/FloorDetailPage.vue'
+import UserPage from '../views/UserPage.vue'
 
 const routes = [
     {
@@ -55,7 +56,13 @@ const routes = [
         name: 'FloorDetail',
         component: FloorDetailPage,
         meta: { requiresAuth: true }
-    }
+    },
+    {
+        path: '/users',
+        name: 'Users',
+        component: UserPage,
+        meta: { requiresAuth: true } // agar auth kerak bo'lsa
+    },
 ]
 
 const router = createRouter({
