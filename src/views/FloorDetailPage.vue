@@ -288,10 +288,13 @@ async function updateRoom() {
       name: editForm.value.name.trim(),
       floorId: parseInt(floorId),
       roomTypeId: editForm.value.roomTypeId,
+      isRoom: editForm.value.isRoom
     }
 
-
-    requestBody.capacity = parseInt(editForm.value.capacity)
+    // Add capacity only if it's a bedroom
+    if (editForm.value.isRoom && editForm.value.capacity) {
+      requestBody.capacity = parseInt(editForm.value.capacity)
+    }
 
     const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/update', {
       method: 'POST',
@@ -486,6 +489,20 @@ onMounted(() => {
             <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
           </div>
 
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                  type="checkbox"
+                  v-model="createForm.isRoom"
+                  class="form-checkbox"
+              />
+              <div class="checkbox-text">
+                <strong>Yotoq xonasi</strong>
+                <small>Agar bu yotoq xonasi bo'lsa, belgilang</small>
+              </div>
+            </label>
+          </div>
+
           <div class="form-group" v-if="createForm.isRoom">
             <label>Sig'im (necha kishilik) *</label>
             <input
@@ -547,6 +564,20 @@ onMounted(() => {
               </option>
             </select>
             <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                  type="checkbox"
+                  v-model="editForm.isRoom"
+                  class="form-checkbox"
+              />
+              <div class="checkbox-text">
+                <strong>Yotoq xonasi</strong>
+                <small>Agar bu yotoq xonasi bo'lsa, belgilang</small>
+              </div>
+            </label>
           </div>
 
           <div class="form-group" v-if="editForm.isRoom">

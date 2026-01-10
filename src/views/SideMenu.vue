@@ -39,6 +39,12 @@ function goToUsers() {
   isMalumotnomaDrop.value = false
 }
 
+function goToRoomTypes() {
+  router.push('/room-type')
+  isMenuOpen.value = false
+  isMalumotnomaDrop.value = false
+}
+
 function handleLogout() {
   authStore.logout()
   router.push('/login')
@@ -86,6 +92,9 @@ function handleLogout() {
             </button>
             <button @click="goToUsers" class="dropdown-item">
               👥 Foydalanuvchilar
+            </button>
+            <button @click="goToRoomTypes" class="dropdown-item">
+              👥 Xona turi
             </button>
           </div>
         </div>
