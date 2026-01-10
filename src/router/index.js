@@ -11,6 +11,8 @@ import DormitoryDetailPage from '../views/DormitoryDetailPage.vue'
 import FloorDetailPage from '../views/FloorDetailPage.vue'
 import UserPage from '../views/UserPage.vue'
 import RoomTypePage from "../views/RoomTypePage.vue";
+import AttendancePage from "../views/AttendancePage.vue";
+import AttendanceItemPage from "../views/AttendanceItemPage.vue";
 
 const routes = [
     {
@@ -69,6 +71,18 @@ const routes = [
         name: 'RoomType',
         component: RoomTypePage,
         meta: { requiresAuth: true } // agar auth kerak bo'lsa
+    },
+    {
+        path: '/attendance',
+        name: 'Attendance',
+        component: AttendancePage,
+        meta: { requiresAuth: true } // agar auth kerak bo'lsa
+    },
+    {
+        path: '/attendance/:id',
+        name: 'AttendanceItem',
+        component: AttendanceItemPage,
+        meta: { requiresAuth: true }
     },
 ]
 
