@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import router from '../router'
 
+// API base URL
+const API_URL = import.meta.env.VITE_API_URL
+
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
     const token = ref(localStorage.getItem('token') || null)
@@ -12,13 +15,11 @@ export const useAuthStore = defineStore('auth', () => {
     const isAuthenticated = computed(() => !!token.value)
     const currentUser = computed(() => user.value)
 
-    // 403 xatosini handle qilish
     function handleUnauthorized() {
         logout()
         router.push('/login')
     }
 
-    // Autentifikatsiya talab qiladigan requestlar uchun
     async function makeAuthenticatedRequest(url, options = {}) {
         try {
             const response = await fetch(url, {
@@ -30,7 +31,6 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             })
 
-            // 403 xatosini tekshirish
             if (response.status === 403) {
                 handleUnauthorized()
                 throw new Error('Unauthorized - Session expired')
@@ -44,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(userData) {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/login', {
+            const response = await fetch(`${API_URL}/api/auth/login`, {  // ← O'ZGARDI
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -111,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function register(userData) {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/register', {
+            const response = await fetch(`${API_URL}/api/auth/register`, {  // ← O'ZGARDI
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
