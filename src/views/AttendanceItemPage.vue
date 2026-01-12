@@ -1,8 +1,9 @@
 <script setup>
-import {ref, computed, onMounted} from 'vue'
-import {useRouter, useRoute} from 'vue-router'
-import {useAuthStore} from '../stores/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
+import api from "../api/api.js"
 
 const router = useRouter()
 const route = useRoute()
@@ -48,8 +49,8 @@ const filteredUsers = computed(() => {
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
     users = users.filter(user => {
-      const fullName = `${user.lastName} ${user.firstName} ${user.middleName}`.toLowerCase()
-      const reverseName = `${user.firstName} ${user.lastName} ${user.middleName}`.toLowerCase()
+      const fullName = `${user.lastName} ${user.firstName} ${user.middleName || ''}`.toLowerCase()
+      const reverseName = `${user.firstName} ${user.lastName} ${user.middleName || ''}`.toLowerCase()
       const phone = (user.phone || '').toLowerCase()
 
       return fullName.includes(query) ||
@@ -107,21 +108,13 @@ async function fetchAttendanceDetail() {
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/attendance/get/${attendanceId}`,
-        {
-          method: 'GET'
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Davomat ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    attendance.value = data
+    const response = await api.get(`/attendance/get/${attendanceId}`)
+    attendance.value = response.data
   } catch (err) {
-    if (err.message !== 'Unauthorized - Session expired') {
+    if (err.response?.status === 401) {
+      error.value = 'Unauthorized - Session expired'
+      authStore.logout()
+    } else {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
     }
   } finally {
@@ -142,7 +135,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <SideMenu/>
+    <SideMenu />
 
     <div class="page-header">
       <div class="header-left">
@@ -288,9 +281,9 @@ onMounted(() => {
                 <span class="room-badge">🏠 {{ user.roomNumber }}</span>
               </td>
               <td class="status-cell">
-                <span :class="['status-badge', user.isAttended ? 'attended' : 'not-attended']">
-                  {{ user.isAttended ? '✅ Qatnashdi' : '❌ Qatnashmadi' }}
-                </span>
+                  <span :class="['status-badge', user.isAttended ? 'attended' : 'not-attended']">
+                    {{ user.isAttended ? '✅ Qatnashdi' : '❌ Qatnashmadi' }}
+                  </span>
               </td>
             </tr>
             </tbody>
@@ -373,12 +366,8 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Error */
@@ -536,7 +525,8 @@ onMounted(() => {
   min-width: 200px;
 }
 
-.search-input, .filter-select {
+.search-input,
+.filter-select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 2px solid #e0e0e0;
@@ -545,7 +535,8 @@ onMounted(() => {
   transition: border-color 0.3s;
 }
 
-.search-input:focus, .filter-select:focus {
+.search-input:focus,
+.filter-select:focus {
   outline: none;
   border-color: #667eea;
 }

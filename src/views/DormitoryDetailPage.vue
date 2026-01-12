@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
+import api from "../api/api.js";
 
 const router = useRouter()
 const route = useRoute()
@@ -58,18 +59,8 @@ async function fetchDormitoryDetail() {
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/dorm/get/${dormitoryId}`,
-        {
-          method: 'GET'
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Yotoqxona ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
+    const response = await api.get(`/dorm/get/${dormitoryId}`)
+    const data = response.data
     dormitory.value = data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
@@ -131,17 +122,10 @@ async function createFloor() {
   createLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/floor/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: createForm.value.name.trim(),
-        dormId: parseInt(dormitoryId)
-      })
+    await api.post('/floor/create', {
+      name: createForm.value.name.trim(),
+      dormId: parseInt(dormitoryId)
     })
-
-    if (!response.ok) {
-      throw new Error('Qavat yaratishda xatolik')
-    }
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli yaratildi')
@@ -180,18 +164,11 @@ async function updateFloor() {
   editLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/floor/update', {
-      method: 'PUT',
-      body: JSON.stringify({
-        id: editForm.value.id,
-        name: editForm.value.name.trim(),
-        dormId: parseInt(dormitoryId)
-      })
+    await api.put('/floor/update', {
+      id: editForm.value.id,
+      name: editForm.value.name.trim(),
+      dormId: parseInt(dormitoryId)
     })
-
-    if (!response.ok) {
-      throw new Error('Qavatni yangilashda xatolik')
-    }
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli yangilandi')
@@ -218,13 +195,7 @@ async function deleteFloor() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/floor/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Qavatni o\'chirishda xatolik')
-    }
+    await api.delete(`/floor/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli o\'chirildi')

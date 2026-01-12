@@ -1,59 +1,67 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import SideMenu from "./SideMenu.vue";
+import SideMenu from './SideMenu.vue'
 
+// ==================== Composables ====================
 const router = useRouter()
 const authStore = useAuthStore()
 
+// ==================== State ====================
 const isMenuOpen = ref(false)
-const isMalumotnomaDrop = ref(false)
 
+// ==================== Computed Properties ====================
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const currentUser = computed(() => authStore.currentUser)
+const userName = computed(() => {
+  if (!currentUser.value) return 'Foydalanuvchi'
+  return currentUser.value.firstName || currentUser.value.username || 'Foydalanuvchi'
+})
+
+// ==================== Menu Management ====================
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-function toggleMalumotnoma() {
-  isMalumotnomaDrop.value = !isMalumotnomaDrop.value
+function closeMenu() {
+  isMenuOpen.value = false
+}
+
+// ==================== Navigation ====================
+function navigateTo(path) {
+  router.push(path)
+  closeMenu()
 }
 
 function goToLogin() {
-  router.push('/login')
-  isMenuOpen.value = false
+  navigateTo('/login')
 }
 
 function goToRegister() {
-  router.push('/register')
-  isMenuOpen.value = false
+  navigateTo('/register')
 }
 
 function goToDashboard() {
-  router.push('/dashboard')
-  isMenuOpen.value = false
+  navigateTo('/dashboard')
 }
 
-function goToSettings() {
-  router.push('/settings')
-  isMenuOpen.value = false
-}
-
-function goToDormitories() {
-  router.push('/dormitories')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
-}
-
+// ==================== Authentication ====================
 function handleLogout() {
   authStore.logout()
-  isMenuOpen.value = false
+  closeMenu()
 }
 </script>
 
 <template>
   <div class="home-container">
     <!-- Hamburger Menu Button -->
-    <button class="menu-button" @click="toggleMenu">
+    <button
+        class="menu-button"
+        @click="toggleMenu"
+        aria-label="Menu"
+        aria-expanded="isMenuOpen"
+    >
       <span class="hamburger-icon" :class="{ open: isMenuOpen }">
         <span></span>
         <span></span>
@@ -61,40 +69,80 @@ function handleLogout() {
       </span>
     </button>
 
-    <!-- Side Menu -->
-    <SideMenu/>
+    <!-- Side Menu Component -->
+    <SideMenu />
+
     <!-- Overlay -->
-    <div
-        class="overlay"
-        :class="{ show: isMenuOpen }"
-        @click="toggleMenu"
-    ></div>
+    <Transition name="fade">
+      <div
+          v-if="isMenuOpen"
+          class="overlay"
+          @click="closeMenu"
+          aria-hidden="true"
+      ></div>
+    </Transition>
 
     <!-- Main Content -->
-    <div class="hero">
-      <h1 class="project-name">🏠 Mening yotoqxonam</h1>
-      <p class="tagline">Yotoqxona boshqaruv tizimi</p>
+    <main class="hero">
+      <div class="hero-content">
+        <h1 class="project-name">
+          <span class="project-icon">🏠</span>
+          Mening yotoqxonam
+        </h1>
+        <p class="tagline">Yotoqxona boshqaruv tizimi</p>
 
-      <div v-if="authStore.isAuthenticated" class="logged-in">
-        <p>Salom, {{ authStore.currentUser?.firstName }}! 👋</p>
-        <button @click="goToDashboard" class="btn btn-primary">
-          Dashboard ga o'tish
-        </button>
-      </div>
+        <!-- Authenticated User Section -->
+        <Transition name="slide-up" mode="out-in">
+          <div v-if="isAuthenticated" key="authenticated" class="user-section">
+            <div class="logged-in">
+              <p class="welcome-text">
+                Salom, <strong>{{ userName }}</strong>! 👋
+              </p>
+              <button
+                  @click="goToDashboard"
+                  class="btn btn-primary"
+                  aria-label="Dashboard ga o'tish"
+              >
+                <span class="btn-icon">📊</span>
+                Dashboard ga o'tish
+              </button>
+            </div>
+          </div>
 
-      <div v-else class="action-buttons">
-        <button @click="goToLogin" class="btn btn-primary">
-          Kirish
-        </button>
-        <button @click="goToRegister" class="btn btn-secondary">
-          Ro'yxatdan o'tish
-        </button>
+          <!-- Guest User Section -->
+          <div v-else key="guest" class="user-section">
+            <div class="action-buttons">
+              <button
+                  @click="goToLogin"
+                  class="btn btn-primary"
+                  aria-label="Tizimga kirish"
+              >
+                <span class="btn-icon">🔑</span>
+                Kirish
+              </button>
+              <button
+                  @click="goToRegister"
+                  class="btn btn-secondary"
+                  aria-label="Ro'yxatdan o'tish"
+              >
+                <span class="btn-icon">📝</span>
+                Ro'yxatdan o'tish
+              </button>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Features Preview (Optional) -->
+        <div class="features-hint">
+          <p>✨ Yotoqxonani samarali boshqaring</p>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
+/* ==================== Container ==================== */
 .home-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -105,7 +153,7 @@ function handleLogout() {
   overflow-x: hidden;
 }
 
-/* Hamburger Menu Button */
+/* ==================== Menu Button ==================== */
 .menu-button {
   position: fixed;
   top: 1.5rem;
@@ -114,10 +162,10 @@ function handleLogout() {
   background: white;
   border: none;
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .menu-button:hover {
@@ -125,6 +173,16 @@ function handleLogout() {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
+.menu-button:active {
+  transform: scale(0.98);
+}
+
+.menu-button:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Hamburger Icon */
 .hamburger-icon {
   display: flex;
   flex-direction: column;
@@ -139,7 +197,7 @@ function handleLogout() {
   height: 3px;
   background: #667eea;
   border-radius: 2px;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hamburger-icon.open span:nth-child(1) {
@@ -148,174 +206,14 @@ function handleLogout() {
 
 .hamburger-icon.open span:nth-child(2) {
   opacity: 0;
+  transform: translateX(-10px);
 }
 
 .hamburger-icon.open span:nth-child(3) {
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Side Menu */
-.side-menu {
-  position: fixed;
-  top: 0;
-  left: -320px;
-  width: 320px;
-  height: 100vh;
-  background: white;
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-  z-index: 1002;
-  transition: left 0.3s ease;
-  overflow-y: auto;
-}
-
-.side-menu.open {
-  left: 0;
-}
-
-.menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.menu-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.close-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.close-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
-
-.menu-nav {
-  padding: 1rem;
-}
-
-.user-info-menu {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.user-name {
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.25rem 0;
-}
-
-.user-username {
-  color: #667eea;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.menu-item {
-  width: 100%;
-  padding: 1rem;
-  background: white;
-  border: 2px solid #f0f0f0;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  text-align: left;
-  color: #333;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.menu-item:hover {
-  background: #f8f9fa;
-  border-color: #667eea;
-  transform: translateX(5px);
-}
-
-.menu-item.logout {
-  background: #fff5f5;
-  border-color: #ff4757;
-  color: #ff4757;
-}
-
-.menu-item.logout:hover {
-  background: #ff4757;
-  color: white;
-}
-
-/* Dropdown */
-.dropdown-wrapper {
-  margin-bottom: 0.5rem;
-}
-
-.dropdown-btn {
-  justify-content: space-between;
-}
-
-.dropdown-btn .arrow {
-  transition: transform 0.3s;
-  color: #667eea;
-  font-size: 0.85rem;
-}
-
-.dropdown-btn .arrow.rotated {
-  transform: rotate(180deg);
-}
-
-.dropdown-menu {
-  background: #f8f9fa;
-  border: 2px solid #f0f0f0;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  margin-top: -0.5rem;
-  padding: 0.5rem 0;
-}
-
-.dropdown-item {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.5rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-align: left;
-  color: #555;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dropdown-item:hover {
-  background: white;
-  color: #667eea;
-  padding-left: 3rem;
-}
-
-/* Overlay */
+/* ==================== Overlay ==================== */
 .overlay {
   position: fixed;
   top: 0;
@@ -324,70 +222,144 @@ function handleLogout() {
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s;
+  cursor: pointer;
 }
 
-.overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Hero Section */
+/* ==================== Hero Section ==================== */
 .hero {
   text-align: center;
   padding: 3rem 2rem;
   color: white;
   z-index: 1;
   position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero-content {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .project-name {
-  font-size: 3.5rem;
-  margin: 0 0 0.5rem 0;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  margin: 0 0 1rem 0;
   font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.project-icon {
+  display: inline-block;
+  animation: bounce 2s infinite;
 }
 
 .tagline {
-  font-size: 1.3rem;
-  margin-bottom: 3rem;
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  margin: 0 0 3rem 0;
   opacity: 0.95;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
 }
 
+/* ==================== User Section ==================== */
+.user-section {
+  margin-bottom: 2rem;
+}
+
+/* Logged In Section */
+.logged-in {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 16px;
+  max-width: 450px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-text {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  margin: 0 0 1.5rem 0;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.welcome-text strong {
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ==================== Action Buttons ==================== */
 .action-buttons {
   display: flex;
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
-}
-
-.logged-in {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
+  max-width: 500px;
   margin: 0 auto;
-}
-
-.logged-in p {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
 }
 
 .btn {
   padding: 1rem 2rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 10px;
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 160px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-icon {
+  font-size: 1.2em;
+  display: inline-block;
+}
+
+.btn:active {
+  transform: translateY(-1px);
+}
+
+.btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
 
 .btn-primary {
   background: white;
   color: #667eea;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
@@ -404,20 +376,180 @@ function handleLogout() {
 .btn-secondary:hover {
   background: white;
   color: #667eea;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
 }
 
+/* ==================== Features Hint ==================== */
+.features-hint {
+  margin-top: 3rem;
+  opacity: 0.8;
+}
+
+.features-hint p {
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ==================== Animations ==================== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Slide Up Transition */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* ==================== Responsive Design ==================== */
 @media (max-width: 768px) {
+  .hero {
+    padding: 2rem 1rem;
+  }
+
+  .logged-in {
+    padding: 1.5rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .features-hint {
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-button {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.625rem;
+  }
+
+  .hamburger-icon {
+    width: 20px;
+    height: 16px;
+    gap: 3px;
+  }
+
+  .hamburger-icon span {
+    height: 2.5px;
+  }
+
+  .hero {
+    padding: 1.5rem 1rem;
+  }
+
+  .logged-in {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .btn {
+    padding: 0.875rem 1.5rem;
+    min-width: 140px;
+  }
+
+  .btn-icon {
+    font-size: 1.1em;
+  }
+}
+
+@media (max-width: 360px) {
   .project-name {
-    font-size: 2.5rem;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
-  .tagline {
-    font-size: 1.1rem;
+  .btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* ==================== Accessibility ==================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==================== Dark Mode Support (Future) ==================== */
+@media (prefers-color-scheme: dark) {
+  .menu-button {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
 
-  .side-menu {
-    width: 280px;
-    left: -280px;
+  .logged-in {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ==================== Print Styles ==================== */
+@media print {
+  .menu-button,
+  .overlay,
+  .features-hint {
+    display: none;
+  }
+
+  .home-container {
+    background: white;
+    color: black;
+  }
+
+  .hero {
+    color: black;
   }
 }
 </style>

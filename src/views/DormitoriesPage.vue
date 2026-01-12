@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
+import api from "../api/api.js";
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -60,33 +61,32 @@ async function fetchDormitories() {
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: currentPage.value - 1,
-        size: pageSize.value,
-        search: {
-          value: searchQuery.value || ''
-        }
-      })
+    const { data } = await api.post('/dorm/list', {
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      search: {
+        value: searchQuery.value || ''
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
     dormitories.value = data.list || []
     total.value = data.total || 0
-    totalPages.value = data.totalPages || Math.ceil(total.value / pageSize.value)
+    totalPages.value =
+        data.totalPages || Math.ceil(total.value / pageSize.value)
+
   } catch (err) {
-    if (err.message !== 'Unauthorized - Session expired') {
-      error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
+    if (err.response?.status === 401) {
+      authStore.logout()
+    } else {
+      error.value =
+          err.response?.data?.message ||
+          'Server bilan bog‘lanishda xatolik!'
     }
   } finally {
     loading.value = false
   }
 }
+
 
 function handleSearch() {
   currentPage.value = 1
@@ -156,26 +156,25 @@ async function createDormitory() {
   createLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: createForm.value.name.trim()
-      })
+    await api.post('/dorm/create', {
+      name: createForm.value.name.trim()
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxona yaratishda xatolik')
-    }
-
     closeCreateModal()
-    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yaratildi')
+    showSuccessMessage(
+        'Muvaffaqiyatli!',
+        'Yotoqxona muvaffaqiyatli yaratildi'
+    )
     fetchDormitories()
+
   } catch (err) {
-    formError.value = err.message || 'Xatolik yuz berdi!'
+    formError.value =
+        err.response?.data?.message || 'Xatolik yuz berdi!'
   } finally {
     createLoading.value = false
   }
 }
+
 
 // Edit Dormitory
 function openEditModal(dorm) {
@@ -203,27 +202,26 @@ async function updateDormitory() {
   editLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/update', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: editForm.value.id,
-        name: editForm.value.name.trim()
-      })
+    await api.post('/dorm/update', {
+      id: editForm.value.id,
+      name: editForm.value.name.trim()
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxonani yangilashda xatolik')
-    }
-
     closeEditModal()
-    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yangilandi')
+    showSuccessMessage(
+        'Muvaffaqiyatli!',
+        'Yotoqxona muvaffaqiyatli yangilandi'
+    )
     fetchDormitories()
+
   } catch (err) {
-    formError.value = err.message || 'Xatolik yuz berdi!'
+    formError.value =
+        err.response?.data?.message || 'Xatolik yuz berdi!'
   } finally {
     editLoading.value = false
   }
 }
+
 
 // Delete Dormitory
 function openDeleteModal(id) {
@@ -240,24 +238,26 @@ async function deleteDormitory() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/dorm/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Yotoqxonani o\'chirishda xatolik')
-    }
+    await api.delete(`/dorm/delete/${deleteId.value}`)
 
     closeDeleteModal()
-    showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli o\'chirildi')
+    showSuccessMessage(
+        'Muvaffaqiyatli!',
+        'Yotoqxona muvaffaqiyatli o‘chirildi'
+    )
     fetchDormitories()
+
   } catch (err) {
     closeDeleteModal()
-    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+    showErrorMessage(
+        'Xatolik!',
+        err.response?.data?.message || 'Xatolik yuz berdi!'
+    )
   } finally {
     deleteLoading.value = false
   }
 }
+
 
 onMounted(() => {
   fetchDormitories()
