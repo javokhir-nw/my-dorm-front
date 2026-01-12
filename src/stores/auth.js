@@ -1,7 +1,6 @@
-import {defineStore} from 'pinia'
-import {ref, computed} from 'vue'
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 import router from '../router'
-import api from "../api/api.js";
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
@@ -45,12 +44,33 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(userData) {
         try {
-            const response = await api.post('/auth/login', {
-                username: userData.username,
-                password: userData.password
+            const response = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: userData.username,
+                    password: userData.password
+                })
             })
 
-            const data = response.data
+            if (response.status === 403) {
+                return {
+                    success: false,
+                    message: 'Login yoki parol xato!'
+                }
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                return {
+                    success: false,
+                    message: errorData.message || 'Login yoki parol xato!'
+                }
+            }
+
+            const data = await response.json()
 
             token.value = data.token
             userId.value = data.id
@@ -78,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('permissionIds', JSON.stringify(permIds))
             localStorage.setItem('user', JSON.stringify(user.value))
 
-            return {success: true, message: 'Muvaffaqiyatli kirildi!'}
+            return { success: true, message: 'Muvaffaqiyatli kirildi!' }
 
         } catch (error) {
             console.error('Login error:', error)
@@ -91,17 +111,31 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function register(userData) {
         try {
-            const response = await api.post('/auth/register', {
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                middleName: userData.middleName || null,
-                username: userData.username,
-                password: userData.password,
-                telegramUsername: userData.telegramUsername || null,
-                phone: userData.phone || null
+            const response = await fetch('http://localhost:8080/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    middleName: userData.middleName || null,
+                    username: userData.username,
+                    password: userData.password,
+                    telegramUsername: userData.telegramUsername || null,
+                    phone: userData.phone || null
+                })
             })
 
-            const data = response.data
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                return {
+                    success: false,
+                    message: errorData.message || 'Ro\'yxatdan o\'tishda xatolik!'
+                }
+            }
+
+            const data = await response.json()
 
             token.value = data.token
             userId.value = data.id
@@ -129,7 +163,7 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('permissionIds', JSON.stringify(permIds))
             localStorage.setItem('user', JSON.stringify(user.value))
 
-            return {success: true, message: 'Muvaffaqiyatli ro\'yxatdan o\'tdingiz!'}
+            return { success: true, message: 'Muvaffaqiyatli ro\'yxatdan o\'tdingiz!' }
 
         } catch (error) {
             console.error('Register error:', error)

@@ -1,9 +1,8 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import {ref, onMounted, watch} from 'vue'
+import {useRouter} from 'vue-router'
+import {useAuthStore} from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
-import api from "../api/api.js"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -14,7 +13,7 @@ const totalPages = ref(0)
 const loading = ref(false)
 const error = ref('')
 
-// Search and pagination
+// Search and pagination parameters
 const searchQuery = ref('')
 const filterDormId = ref(null)
 const filterFloorId = ref(null)
@@ -22,11 +21,12 @@ const selectedDate = ref(getTodayDate())
 const currentPage = ref(1)
 const pageSize = ref(10)
 
-// Dropdown lists
+// Lists for dropdowns
 const dormitories = ref([])
 const filterFloors = ref([])
+
+// Loading states
 const loadingDorms = ref(false)
-const loadingFloors = ref(false)
 
 function getTodayDate() {
   const today = new Date()
@@ -49,28 +49,30 @@ async function fetchAttendances() {
   error.value = ''
 
   try {
-    const response = await api.post('/attendance/list', {
-      page: currentPage.value - 1,
-      size: pageSize.value,
-      search: {
-        value: searchQuery.value || null,
-        dormId: filterDormId.value,
-        floorId: filterFloorId.value,
-        date: selectedDate.value
-      }
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/attendance/list', {
+      method: 'POST',
+      body: JSON.stringify({
+        page: currentPage.value - 1,
+        size: pageSize.value,
+        search: {
+          value: searchQuery.value || null,
+          dormId: filterDormId.value,
+          floorId: filterFloorId.value,
+          date: selectedDate.value
+        }
+      })
     })
 
-    const data = response.data
-    console.log(data)
+    if (!response.ok) {
+      throw new Error('Davomat ma\'lumotlarini yuklashda xatolik')
+    }
+
+    const data = await response.json()
     attendances.value = data.list || []
-    console.log(data.list)
-    total.value = data.totalElements || 0
-    totalPages.value = data.totalPages || 0
+    total.value = data.total || 0
+    totalPages.value = data.totalPages || Math.ceil(total.value / pageSize.value)
   } catch (err) {
-    if (err.response?.status === 401) {
-      error.value = 'Unauthorized - Session expired'
-      authStore.logout()
-    } else {
+    if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
     }
   } finally {
@@ -82,40 +84,60 @@ async function fetchDormitories() {
   loadingDorms.value = true
 
   try {
-    const response = await api.post('/dorm/list', {
-      page: 0,
-      size: 100,
-      search: { value: null }
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
+      method: 'POST',
+      body: JSON.stringify({
+        page: 0,
+        size: 100,
+        search: {
+          value: null
+        }
+      })
     })
 
-    const data = response.data
-    dormitories.value = data.content || []
+    if (!response.ok) {
+      throw new Error('Yotoqxonalarni yuklashda xatolik')
+    }
+
+    const data = await response.json()
+    dormitories.value = data.list || []
   } catch (err) {
-    console.error('Failed to fetch dormitories:', err)
+    console.error('Dormitories fetch error:', err)
   } finally {
     loadingDorms.value = false
   }
 }
 
 async function fetchFloors(dormId) {
-  if (!dormId) return
-
-  loadingFloors.value = true
+  if (!dormId) {
+    filterFloors.value = []
+    filterFloorId.value = null
+    return
+  }
 
   try {
-    const response = await api.post(`/floor/list/${dormId}`, {
-      page: 0,
-      size: 1000,
-      search: { value: null }
-    })
+    const response = await authStore.makeAuthenticatedRequest(
+        `http://localhost:8080/api/floor/list/${dormId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            page: 0,
+            size: 1000,
+            search: {
+              value: null
+            }
+          })
+        }
+    )
 
-    const data = response.data
-    filterFloors.value = data.content || []
+    if (!response.ok) {
+      throw new Error('Qavatlarni yuklashda xatolik')
+    }
+
+    const data = await response.json()
+    filterFloors.value = data.list || []
   } catch (err) {
-    console.error('Failed to fetch floors:', err)
-    filterFloors.value = []
-  } finally {
-    loadingFloors.value = false
+    console.error('Floors fetch error:', err)
   }
 }
 
@@ -146,7 +168,7 @@ function goToPage(page) {
   }
 }
 
-// Watchers
+// Watchers for filters
 watch(() => filterDormId.value, (newVal) => {
   filterFloorId.value = null
   filterFloors.value = []
@@ -175,134 +197,144 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <SideMenu />
+    <SideMenu/>
 
     <div class="page-header">
-      <div class="header-content">
-        <button @click="goBack" class="back-btn">
-          <span>←</span>
-          Orqaga
-        </button>
-        <h1>📋 Davomat ro'yxati</h1>
+      <div class="header-left">
+        <button @click="goBack" class="back-button">← Orqaga</button>
+        <h1>📋 Davomat</h1>
       </div>
     </div>
 
-    <div class="content-wrapper">
-      <!-- Search & Filters -->
-      <div class="filters-section">
-        <div class="search-bar">
+    <!-- Search and Filters -->
+    <div class="search-container">
+      <div class="search-box">
+        <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Qidirish..."
+            @keyup.enter="handleSearch"
+            class="search-input"
+        />
+        <button @click="handleSearch" class="btn-search" :disabled="loading">
+          🔍 Qidirish
+        </button>
+        <button
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="btn-clear"
+            :disabled="loading"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="filters-box">
+        <div class="filter-group">
+          <label class="filter-label">📅 Sana:</label>
           <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="🔍 Qidirish..."
-              @keyup.enter="handleSearch"
-              class="search-input"
+              v-model="selectedDate"
+              type="date"
+              class="date-input"
           />
-          <button @click="handleSearch" class="btn-primary" :disabled="loading">
-            Qidirish
-          </button>
-          <button v-if="searchQuery" @click="clearSearch" class="btn-clear" :disabled="loading">
+        </div>
+
+        <div class="filter-group">
+          <select v-model="filterDormId" class="filter-select">
+            <option :value="null" disabled hidden>Yotoqxonani tanlang</option>
+            <option v-for="dorm in dormitories" :key="dorm.id" :value="dorm.id">
+              {{ dorm.name }}
+            </option>
+          </select>
+          <button
+              v-if="filterDormId"
+              @click="filterDormId = null"
+              class="filter-clear-btn"
+              title="Tozalash"
+          >
             ✕
           </button>
         </div>
 
-        <div class="filters-grid">
-          <div class="filter-item">
-            <label>📅 Sana</label>
-            <input v-model="selectedDate" type="date" class="input-date" />
-          </div>
-
-          <div class="filter-item">
-            <label>🏢 Yotoqxona</label>
-            <div class="select-wrapper">
-              <select v-model="filterDormId" class="select-input">
-                <option :value="null">Barchasi</option>
-                <option v-for="dorm in dormitories" :key="dorm.id" :value="dorm.id">
-                  {{ dorm.name }}
-                </option>
-              </select>
-              <button v-if="filterDormId" @click="filterDormId = null" class="clear-icon">✕</button>
-            </div>
-          </div>
-
-          <div class="filter-item">
-            <label>📊 Qavat</label>
-            <div class="select-wrapper">
-              <select v-model="filterFloorId" class="select-input" :disabled="!filterDormId">
-                <option :value="null">Barchasi</option>
-                <option v-for="floor in filterFloors" :key="floor.id" :value="floor.id">
-                  {{ floor.name }}
-                </option>
-              </select>
-              <button v-if="filterFloorId" @click="filterFloorId = null" class="clear-icon">✕</button>
-            </div>
-          </div>
-
+        <div class="filter-group">
+          <select v-model="filterFloorId" class="filter-select" :disabled="!filterDormId">
+            <option :value="null" disabled hidden>Qavatni tanlang</option>
+            <option v-for="floor in filterFloors" :key="floor.id" :value="floor.id">
+              {{ floor.name }}
+            </option>
+          </select>
           <button
-              v-if="filterDormId || filterFloorId || selectedDate !== getTodayDate()"
-              @click="clearFilters"
-              class="btn-reset"
+              v-if="filterFloorId"
+              @click="filterFloorId = null"
+              class="filter-clear-btn"
+              title="Tozalash"
           >
-            🔄 Tozalash
+            ✕
           </button>
         </div>
-      </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="state-card">
+        <button
+            v-if="filterDormId || filterFloorId || selectedDate !== getTodayDate()"
+            @click="clearFilters"
+            class="btn-clear-filters"
+        >
+          Barchasini tozalash
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Loading -->
+      <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Yuklanmoqda...</p>
       </div>
 
-      <!-- Error State -->
-      <div v-else-if="error" class="state-card error">
-        <p>❌ {{ error }}</p>
-        <button @click="fetchAttendances" class="btn-primary">Qayta urinish</button>
+      <!-- Error -->
+      <div v-else-if="error" class="error-card">
+        <p>{{ error }}</p>
+        <button @click="fetchAttendances" class="btn-retry">Qayta urinish</button>
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="attendances.length === 0" class="state-card">
+      <div v-else-if="attendances.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
-        <h3>Ma'lumot topilmadi</h3>
+        <h3>Davomat ma'lumotlari topilmadi</h3>
         <p v-if="searchQuery || filterDormId || filterFloorId || selectedDate !== getTodayDate()">
-          Filter shartlariga mos natija yo'q
+          Filter bo'yicha natija topilmadi
         </p>
-        <p v-else>Hozircha davomat ma'lumotlari mavjud emas</p>
+        <p v-else>Hozircha hech qanday davomat ma'lumoti yo'q</p>
       </div>
 
       <!-- Attendances Table -->
-      <div v-else class="table-wrapper">
-        <div class="table-card">
-          <table class="data-table">
-            <thead>
-            <tr>
-              <th>ID</th>
-              <th>Yotoqxona</th>
-              <th>Qavat</th>
-              <th>Sana</th>
-              <th class="text-center">Amallar</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="attendance in attendances" :key="attendance.id">
-              <td class="id-cell">#{{ attendance.id }}</td>
-              <td class="bold-cell">{{ attendance.dormName }}</td>
-              <td>{{ attendance.floorName }}</td>
-              <td class="date-cell">
-                <span class="date-badge">📅 {{ attendance.createdDate }}</span>
-              </td>
-              <td class="text-center">
-                <button @click="viewAttendanceDetail(attendance.id)" class="btn-view">
-                  👁️ Ko'rish
-                </button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
+      <div v-else class="table-container">
+        <table class="attendances-table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Yotoqxona</th>
+            <th>Qavat</th>
+            <th>Sana</th>
+            <th>Amallar</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="attendance in attendances" :key="attendance.id">
+            <td>{{ attendance.id }}</td>
+            <td class="dorm-name-cell">{{ attendance.dormName }}</td>
+            <td>{{ attendance.floorName }}</td>
+            <td class="date-cell">📅 {{ attendance.createdDate }}</td>
+            <td class="actions-cell">
+              <button @click="viewAttendanceDetail(attendance.id)" class="btn-view-detail">
+                👁️ Ko'rish
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="pagination">
+        <div class="pagination" v-if="totalPages > 1">
           <button
               @click="goToPage(currentPage - 1)"
               :disabled="currentPage === 1"
@@ -311,12 +343,12 @@ onMounted(() => {
             ← Oldingi
           </button>
 
-          <div class="pagination-pages">
+          <div class="pagination-numbers">
             <button
                 v-for="page in totalPages"
                 :key="page"
                 @click="goToPage(page)"
-                :class="['page-btn', { active: page === currentPage }]"
+                :class="['pagination-number', { active: page === currentPage }]"
             >
               {{ page }}
             </button>
@@ -336,428 +368,437 @@ onMounted(() => {
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
 .page-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  padding: 1.5rem;
+  background: #f5f7fa;
+  padding: 2rem;
 }
 
 .page-header {
-  max-width: 1400px;
-  margin: 0 auto 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  margin-left: 5%;
   background: white;
   padding: 1.5rem 2rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.header-content {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: #f8f9fa;
+.back-button {
+  padding: 0.5rem 1rem;
+  background: #f0f0f0;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  color: #495057;
-  transition: all 0.2s;
+  color: #667eea;
+  transition: all 0.3s;
 }
 
-.back-btn:hover {
+.back-button:hover {
   background: #667eea;
   color: white;
-  transform: translateX(-3px);
-}
-
-.back-btn span {
-  font-size: 1.2rem;
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 1.75rem;
-  color: #2d3748;
-  font-weight: 700;
+  color: #333;
+  font-size: 1.8rem;
 }
 
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+/* Search and Filters */
+.search-container {
+  max-width: 1200px;
+  margin: 0 auto 1.5rem;
 }
 
-/* Filters Section */
-.filters-section {
+.search-box {
   background: white;
   padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.search-bar {
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .search-input {
   flex: 1;
-  padding: 0.875rem 1.25rem;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: all 0.2s;
+  transition: border-color 0.3s;
 }
 
 .search-input:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.btn-primary {
-  padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.btn-search {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+.btn-search:hover:not(:disabled) {
+  background: #5568d3;
 }
 
-.btn-primary:disabled {
+.btn-search:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 .btn-clear {
-  padding: 0.875rem 1.25rem;
-  background: #ef4444;
+  padding: 0.75rem 1rem;
+  background: #ff4757;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 1.1rem;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .btn-clear:hover:not(:disabled) {
+  background: #ff3838;
+}
+
+.filters-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.date-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.filter-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.filter-clear-btn {
+  padding: 0.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: all 0.3s;
+  min-width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-clear-btn:hover {
   background: #dc2626;
   transform: scale(1.05);
 }
 
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  align-items: end;
-}
-
-.filter-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-item label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #495057;
-}
-
-.input-date,
-.select-input {
-  padding: 0.875rem 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 1rem;
-  background: white;
-  transition: all 0.2s;
-}
-
-.input-date:focus,
-.select-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.select-input:disabled {
-  background: #f8f9fa;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.select-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-wrapper .select-input {
-  flex: 1;
-  padding-right: 2.5rem;
-}
-
-.clear-icon {
-  position: absolute;
-  right: 0.75rem;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.clear-icon:hover {
-  background: #dc2626;
-  transform: scale(1.1);
-}
-
-.btn-reset {
-  padding: 0.875rem 1.5rem;
+.btn-clear-filters {
+  padding: 0.75rem 1.5rem;
   background: #f59e0b;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
-  white-space: nowrap;
+  transition: all 0.3s;
 }
 
-.btn-reset:hover {
+.btn-clear-filters:hover {
   background: #d97706;
-  transform: translateY(-2px);
 }
 
-/* State Cards */
-.state-card {
-  background: white;
-  padding: 4rem 2rem;
-  border-radius: 16px;
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Loading */
+.loading-container {
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.state-card.error p {
-  color: #ef4444;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  margin: 0 auto 1.5rem;
-  border: 4px solid #e9ecef;
+  margin: 0 auto 1rem;
+  border: 4px solid #f0f0f0;
   border-top: 4px solid #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error */
+.error-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.error-card p {
+  color: #ff4757;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.btn-retry {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-retry:hover {
+  background: #5568d3;
+}
+
+/* Empty State */
+.empty-state {
+  background: white;
+  padding: 4rem 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .empty-icon {
-  font-size: 5rem;
+  font-size: 4rem;
   margin-bottom: 1rem;
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
-.state-card h3 {
-  color: #2d3748;
-  margin-bottom: 0.75rem;
+.empty-state h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
   font-size: 1.5rem;
 }
 
-.state-card p {
-  color: #718096;
+.empty-state p {
+  color: #666;
   font-size: 1rem;
-  margin-bottom: 0.5rem;
 }
 
 /* Table */
-.table-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.table-card {
+.table-container {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
-.data-table {
+.attendances-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.data-table thead {
+.attendances-table thead {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
-.data-table th {
-  padding: 1.25rem 1.5rem;
+.attendances-table th {
+  padding: 1rem;
   text-align: left;
   font-weight: 600;
   font-size: 0.95rem;
-  letter-spacing: 0.3px;
 }
 
-.data-table tbody tr {
-  border-bottom: 1px solid #f1f3f5;
-  transition: all 0.2s;
+.attendances-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.3s;
 }
 
-.data-table tbody tr:hover {
+.attendances-table tbody tr:hover {
   background: #f8f9fa;
 }
 
-.data-table td {
-  padding: 1.25rem 1.5rem;
+.attendances-table td {
+  padding: 1rem;
   font-size: 0.95rem;
-  color: #495057;
 }
 
-.id-cell {
+.dorm-name-cell {
   font-weight: 600;
-  color: #6c757d;
-}
-
-.bold-cell {
-  font-weight: 600;
-  color: #2d3748;
+  color: #333;
 }
 
 .date-cell {
   color: #667eea;
-}
-
-.date-badge {
-  display: inline-block;
-  padding: 0.375rem 0.875rem;
-  background: #e0e7ff;
-  color: #667eea;
-  border-radius: 8px;
   font-weight: 600;
-  font-size: 0.875rem;
 }
 
-.text-center {
-  text-align: center;
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
-.btn-view {
-  padding: 0.625rem 1.25rem;
+.btn-view-detail {
+  padding: 0.75rem 1.25rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.btn-view:hover {
+.btn-view-detail:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 /* Pagination */
 .pagination {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  padding: 1.5rem;
+  border-top: 1px solid #f0f0f0;
 }
 
 .pagination-btn {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #667eea;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .pagination-btn:hover:not(:disabled) {
+  background: #5568d3;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .pagination-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #adb5bd;
+  background: #ccc;
 }
 
-.pagination-pages {
+.pagination-numbers {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.page-btn {
-  padding: 0.625rem 1rem;
+.pagination-number {
+  padding: 0.5rem 1rem;
   background: white;
   color: #667eea;
   border: 2px solid #667eea;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
-  min-width: 45px;
+  transition: all 0.3s;
 }
 
-.page-btn:hover {
-  background: #f0f4ff;
+.pagination-number:hover {
+  background: #f0f0ff;
   transform: translateY(-2px);
 }
 
-.page-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.pagination-number.active {
+  background: #667eea;
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
@@ -769,36 +810,49 @@ onMounted(() => {
   }
 
   .page-header {
-    margin-bottom: 1.5rem;
+    flex-direction: column;
+    gap: 1rem;
+    margin-left: 0;
   }
 
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
+  .header-left {
+    width: 100%;
   }
 
   .page-header h1 {
     font-size: 1.5rem;
   }
 
-  .search-bar {
+  .search-box {
     flex-direction: column;
   }
 
-  .filters-grid {
-    grid-template-columns: 1fr;
+  .filters-box {
+    flex-direction: column;
   }
 
-  .table-card {
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .filter-select {
+    min-width: 100%;
+  }
+
+  .table-container {
     overflow-x: auto;
   }
 
-  .data-table {
+  .attendances-table {
     min-width: 600px;
   }
 
   .pagination {
     flex-direction: column;
+  }
+
+  .pagination-numbers {
+    justify-content: center;
   }
 }
 </style>

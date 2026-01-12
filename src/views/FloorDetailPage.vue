@@ -1,37 +1,31 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import {ref, onMounted} from 'vue'
+import {useRouter, useRoute} from 'vue-router'
+import {useAuthStore} from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
-import api from "../api/api.js"
 
-// ==================== Composables ====================
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-// ==================== Constants ====================
-const floorId = route.params.id
-
-// ==================== State ====================
 const floor = ref(null)
 const loading = ref(false)
 const error = ref('')
+
+const floorId = route.params.id
+
+// Modal states
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const showSuccessModal = ref(false)
 
 // Room types
 const roomTypes = ref([])
 const loadingRoomTypes = ref(false)
 
-// Modal states
-const modals = ref({
-  create: false,
-  edit: false,
-  delete: false,
-  message: false
-})
-
-// Form data with default values factory
-const createDefaultForm = () => ({
+// Form data
+const createForm = ref({
   number: '',
   name: '',
   floorId: floorId,
@@ -40,11 +34,19 @@ const createDefaultForm = () => ({
   isRoom: true
 })
 
-const createForm = ref(createDefaultForm())
-const editForm = ref(createDefaultForm())
+const editForm = ref({
+  id: 0,
+  number: '',
+  name: '',
+  floorId: floorId,
+  roomTypeId: null,
+  capacity: null,
+  isRoom: true
+})
+
 const deleteId = ref(null)
 
-// Message modal data
+// Success/Error message
 const modalMessage = ref({
   title: '',
   text: '',
@@ -52,11 +54,9 @@ const modalMessage = ref({
 })
 
 // Loading states for modals
-const modalLoading = ref({
-  create: false,
-  edit: false,
-  delete: false
-})
+const createLoading = ref(false)
+const editLoading = ref(false)
+const deleteLoading = ref(false)
 
 // Form validation errors
 const formErrors = ref({
@@ -66,38 +66,32 @@ const formErrors = ref({
   capacity: ''
 })
 
-// ==================== Computed ====================
-const hasRooms = computed(() => floor.value?.rooms?.length > 0)
-const roomsCount = computed(() => floor.value?.rooms?.length || 0)
-const leaderFullName = computed(() => {
-  if (!floor.value) return 'Tayinlanmagan'
-
-  const { leaderFirstName, leaderLastName, leaderMiddleName } = floor.value
-  if (!leaderFirstName && !leaderLastName) return 'Tayinlanmagan'
-
-  return [leaderFirstName, leaderLastName, leaderMiddleName]
-      .filter(Boolean)
-      .join(' ')
-})
-
-// ==================== Navigation ====================
 function goBack() {
-  const dormitoryId = floor.value?.dormitoryId
-  router.push(dormitoryId ? `/dormitory/${dormitoryId}` : '/dormitories')
+  if (floor.value?.dormitoryId) {
+    router.push(`/dormitory/${floor.value.dormitoryId}`)
+  } else {
+    router.push('/dormitories')
+  }
 }
 
-function viewRoom(roomId) {
-  router.push(`/room/${roomId}`)
-}
-
-// ==================== API Calls ====================
 async function fetchFloorDetail() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await api.get(`/floor/get/${floorId}`)
-    floor.value = response.data
+    const response = await authStore.makeAuthenticatedRequest(
+        `http://localhost:8080/api/floor/get/${floorId}`,
+        {
+          method: 'GET'
+        }
+    )
+
+    if (!response.ok) {
+      throw new Error('Qavat ma\'lumotlarini yuklashda xatolik')
+    }
+
+    const data = await response.json()
+    floor.value = data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -108,13 +102,22 @@ async function fetchFloorDetail() {
 }
 
 async function fetchRoomTypes() {
-  if (roomTypes.value.length > 0) return
-
   loadingRoomTypes.value = true
 
   try {
-    const response = await api.get('/room-type/list')
-    roomTypes.value = response.data
+    const response = await authStore.makeAuthenticatedRequest(
+        'http://localhost:8080/api/room-type/list',
+        {
+          method: 'GET'
+        }
+    )
+
+    if (!response.ok) {
+      throw new Error('Xona turlarini yuklashda xatolik')
+    }
+
+    const data = await response.json()
+    roomTypes.value = data
   } catch (err) {
     console.error('Room types fetch error:', err)
   } finally {
@@ -122,7 +125,32 @@ async function fetchRoomTypes() {
   }
 }
 
-// ==================== Form Validation ====================
+function viewRoom(roomId) {
+  router.push(`/room/${roomId}`)
+}
+
+function showSuccessMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'success'
+  }
+  showSuccessModal.value = true
+}
+
+function showErrorMessage(title, text) {
+  modalMessage.value = {
+    title,
+    text,
+    type: 'error'
+  }
+  showSuccessModal.value = true
+}
+
+function closeSuccessModal() {
+  showSuccessModal.value = false
+}
+
 function clearFormErrors() {
   formErrors.value = {
     number: '',
@@ -136,7 +164,7 @@ function validateForm(form) {
   clearFormErrors()
   let isValid = true
 
-  if (!form.number?.trim()) {
+  if (!form.number || !form.number.trim()) {
     formErrors.value.number = 'Xona raqamini kiriting!'
     isValid = false
   }
@@ -147,55 +175,46 @@ function validateForm(form) {
   }
 
   // Capacity validation only for bedroom (isRoom = true)
-  if (form.isRoom && (!form.capacity || form.capacity < 1)) {
-    formErrors.value.capacity = 'Yotoq xonasi uchun sig\'imni kiriting!'
-    isValid = false
+  if (form.isRoom) {
+    if (!form.capacity || form.capacity < 1) {
+      formErrors.value.capacity = 'Yotoq xonasi uchun sig\'imni kiriting!'
+      isValid = false
+    }
   }
 
   return isValid
 }
 
-// ==================== Modal Helpers ====================
-function openModal(modalName) {
-  modals.value[modalName] = true
-}
-
-function closeModal(modalName) {
-  modals.value[modalName] = false
-  clearFormErrors()
-}
-
-function showMessage(title, text, type = 'success') {
-  modalMessage.value = { title, text, type }
-  openModal('message')
-}
-
-function showSuccessMessage(title, text) {
-  showMessage(title, text, 'success')
-}
-
-function showErrorMessage(title, text) {
-  showMessage(title, text, 'error')
-}
-
-// ==================== CRUD Operations ====================
-
 // Create Room
 async function openCreateModal() {
-  createForm.value = createDefaultForm()
+  createForm.value = {
+    number: '',
+    name: '',
+    floorId: floorId,
+    roomTypeId: null,
+    capacity: null,
+    isRoom: true
+  }
   clearFormErrors()
-  await fetchRoomTypes()
-  openModal('create')
+
+  if (roomTypes.value.length === 0) {
+    await fetchRoomTypes()
+  }
+
+  showCreateModal.value = true
 }
 
 function closeCreateModal() {
-  closeModal('create')
+  showCreateModal.value = false
+  clearFormErrors()
 }
 
 async function createRoom() {
-  if (!validateForm(createForm.value)) return
+  if (!validateForm(createForm.value)) {
+    return
+  }
 
-  modalLoading.value.create = true
+  createLoading.value = true
 
   try {
     const requestBody = {
@@ -211,7 +230,10 @@ async function createRoom() {
       requestBody.capacity = parseInt(createForm.value.capacity)
     }
 
-    const response = await api.post('/room/create', requestBody)
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/create', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    })
 
     if (!response.ok) {
       throw new Error('Xona yaratishda xatolik')
@@ -219,11 +241,11 @@ async function createRoom() {
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yaratildi')
-    await fetchFloorDetail()
+    fetchFloorDetail()
   } catch (err) {
     showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
   } finally {
-    modalLoading.value.create = false
+    createLoading.value = false
   }
 }
 
@@ -232,25 +254,32 @@ async function openEditModal(room) {
   editForm.value = {
     id: room.id,
     number: room.number,
-    name: room.name || '',
+    name: room.name,
     floorId: floorId,
     roomTypeId: room.roomTypeId,
     capacity: room.capacity || null,
-    isRoom: room.isRoom ?? true
+    isRoom: room.isRoom !== undefined ? room.isRoom : true
   }
   clearFormErrors()
-  await fetchRoomTypes()
-  openModal('edit')
+
+  if (roomTypes.value.length === 0) {
+    await fetchRoomTypes()
+  }
+
+  showEditModal.value = true
 }
 
 function closeEditModal() {
-  closeModal('edit')
+  showEditModal.value = false
+  clearFormErrors()
 }
 
 async function updateRoom() {
-  if (!validateForm(editForm.value)) return
+  if (!validateForm(editForm.value)) {
+    return
+  }
 
-  modalLoading.value.edit = true
+  editLoading.value = true
 
   try {
     const requestBody = {
@@ -267,7 +296,10 @@ async function updateRoom() {
       requestBody.capacity = parseInt(editForm.value.capacity)
     }
 
-    const response = await api.post('/room/update', requestBody)
+    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/update', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    })
 
     if (!response.ok) {
       throw new Error('Xonani yangilashda xatolik')
@@ -275,30 +307,32 @@ async function updateRoom() {
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yangilandi')
-    await fetchFloorDetail()
+    fetchFloorDetail()
   } catch (err) {
     showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
   } finally {
-    modalLoading.value.edit = false
+    editLoading.value = false
   }
 }
 
 // Delete Room
 function openDeleteModal(id) {
   deleteId.value = id
-  openModal('delete')
+  showDeleteModal.value = true
 }
 
 function closeDeleteModal() {
-  closeModal('delete')
+  showDeleteModal.value = false
   deleteId.value = null
 }
 
 async function deleteRoom() {
-  modalLoading.value.delete = true
+  deleteLoading.value = true
 
   try {
-    const response = await api.delete(`/room/delete/${deleteId.value}`)
+    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/room/delete/${deleteId.value}`, {
+      method: 'DELETE'
+    })
 
     if (!response.ok) {
       throw new Error('Xonani o\'chirishda xatolik')
@@ -306,16 +340,15 @@ async function deleteRoom() {
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli o\'chirildi')
-    await fetchFloorDetail()
+    fetchFloorDetail()
   } catch (err) {
     closeDeleteModal()
     showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
   } finally {
-    modalLoading.value.delete = false
+    deleteLoading.value = false
   }
 }
 
-// ==================== Lifecycle ====================
 onMounted(() => {
   fetchFloorDetail()
 })
@@ -323,39 +356,27 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <SideMenu />
+    <SideMenu/>
 
-    <!-- Page Header -->
     <div class="page-header">
       <div class="header-left">
-        <button @click="goBack" class="back-button">
-          ← Orqaga
-        </button>
+        <button @click="goBack" class="back-button">← Orqaga</button>
         <h1>🏢 Qavat ma'lumotlari</h1>
       </div>
-      <button
-          v-if="floor"
-          @click="openCreateModal"
-          class="btn-create"
-      >
-        + Xona qo'shish
-      </button>
+      <button v-if="floor" @click="openCreateModal" class="btn-create">+ Xona qo'shish</button>
     </div>
 
-    <!-- Page Content -->
     <div class="page-content">
-      <!-- Loading State -->
+      <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Yuklanmoqda...</p>
       </div>
 
-      <!-- Error State -->
+      <!-- Error -->
       <div v-else-if="error" class="error-card">
         <p>{{ error }}</p>
-        <button @click="fetchFloorDetail" class="btn-retry">
-          Qayta urinish
-        </button>
+        <button @click="fetchFloorDetail" class="btn-retry">Qayta urinish</button>
       </div>
 
       <!-- Floor Detail -->
@@ -374,17 +395,16 @@ onMounted(() => {
           <div class="info-body">
             <div class="info-row">
               <span class="info-label">Qavat rahbari:</span>
-              <span
-                  class="info-value"
-                  :class="{ 'no-data': leaderFullName === 'Tayinlanmagan' }"
-              >
-                {{ leaderFullName }}
+              <span class="info-value" v-if="floor.leaderFirstName || floor.leaderLastName">
+                {{ floor.leaderFirstName }} {{ floor.leaderLastName }}
+                <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
               </span>
+              <span class="info-value no-data" v-else>Tayinlanmagan</span>
             </div>
 
             <div class="info-row">
               <span class="info-label">Xonalar soni:</span>
-              <span class="info-value">{{ roomsCount }} ta</span>
+              <span class="info-value">{{ floor.rooms?.length || 0 }} ta</span>
             </div>
           </div>
         </div>
@@ -393,8 +413,7 @@ onMounted(() => {
         <div class="rooms-section">
           <h3>Xonalar</h3>
 
-          <!-- Rooms Grid -->
-          <div v-if="hasRooms" class="rooms-grid">
+          <div v-if="floor.rooms && floor.rooms.length > 0" class="rooms-grid">
             <div
                 v-for="room in floor.rooms"
                 :key="room.id"
@@ -405,7 +424,7 @@ onMounted(() => {
               </div>
 
               <div class="room-body">
-                <div v-if="room.capacity" class="room-info-item">
+                <div class="room-info-item" v-if="room.capacity">
                   <span class="room-label">Sig'im:</span>
                   <span class="room-value">{{ room.capacity }} kishi</span>
                 </div>
@@ -417,52 +436,29 @@ onMounted(() => {
               </div>
 
               <div class="room-footer">
-                <button
-                    @click="viewRoom(room.id)"
-                    class="btn-view-room"
-                >
-                  Ko'rish →
-                </button>
-                <button
-                    @click.stop="openEditModal(room)"
-                    class="btn-edit-room"
-                >
-                  ✏️
-                </button>
-                <button
-                    @click.stop="openDeleteModal(room.id)"
-                    class="btn-delete-room"
-                >
-                  🗑️
-                </button>
+                <button @click="viewRoom(room.id)" class="btn-view-room">Ko'rish →</button>
+                <button @click.stop="openEditModal(room)" class="btn-edit-room">✏️</button>
+                <button @click.stop="openDeleteModal(room.id)" class="btn-delete-room">🗑️</button>
               </div>
             </div>
           </div>
 
-          <!-- Empty State -->
           <div v-else class="empty-rooms">
             <div class="empty-icon">📭</div>
             <p>Bu qavatda xonalar mavjud emas</p>
-            <button @click="openCreateModal" class="btn-add-first">
-              + Birinchi xonani qo'shish
-            </button>
+            <button @click="openCreateModal" class="btn-add-first">+ Birinchi xonani qo'shish</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Create Modal -->
-    <div
-        v-if="modals.create"
-        class="modal-overlay"
-        @click.self="closeCreateModal"
-    >
+    <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal modal-large">
         <div class="modal-header">
           <h2>🚪 Yangi Xona Qo'shish</h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
-
         <div class="modal-body">
           <div class="form-group">
             <label>Xona raqami *</label>
@@ -474,9 +470,7 @@ onMounted(() => {
                 :class="{ 'input-error': formErrors.number }"
                 @input="formErrors.number = ''"
             />
-            <p v-if="formErrors.number" class="error-message">
-              {{ formErrors.number }}
-            </p>
+            <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
           </div>
 
           <div class="form-group">
@@ -488,17 +482,11 @@ onMounted(() => {
                 @change="formErrors.roomTypeId = ''"
             >
               <option :value="null" disabled>Xona turini tanlang</option>
-              <option
-                  v-for="type in roomTypes"
-                  :key="type.id"
-                  :value="type.id"
-              >
+              <option v-for="type in roomTypes" :key="type.id" :value="type.id">
                 {{ type.name }}
               </option>
             </select>
-            <p v-if="formErrors.roomTypeId" class="error-message">
-              {{ formErrors.roomTypeId }}
-            </p>
+            <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
           </div>
 
           <div class="form-group">
@@ -515,7 +503,7 @@ onMounted(() => {
             </label>
           </div>
 
-          <div v-if="createForm.isRoom" class="form-group">
+          <div class="form-group" v-if="createForm.isRoom">
             <label>Sig'im (necha kishilik) *</label>
             <input
                 v-model.number="createForm.capacity"
@@ -526,43 +514,28 @@ onMounted(() => {
                 :class="{ 'input-error': formErrors.capacity }"
                 @input="formErrors.capacity = ''"
             />
-            <p v-if="formErrors.capacity" class="error-message">
-              {{ formErrors.capacity }}
-            </p>
+            <p v-if="formErrors.capacity" class="error-message">{{ formErrors.capacity }}</p>
           </div>
         </div>
-
         <div class="modal-footer">
-          <button
-              @click="closeCreateModal"
-              class="btn-cancel"
-              :disabled="modalLoading.create"
-          >
+          <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
             Bekor qilish
           </button>
-          <button
-              @click="createRoom"
-              class="btn-submit"
-              :disabled="modalLoading.create"
-          >
-            {{ modalLoading.create ? 'Saqlanmoqda...' : 'Saqlash' }}
+          <button @click="createRoom" class="btn-submit" :disabled="createLoading">
+            <span v-if="createLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Edit Modal -->
-    <div
-        v-if="modals.edit"
-        class="modal-overlay"
-        @click.self="closeEditModal"
-    >
+    <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-large">
         <div class="modal-header">
           <h2>✏️ Xonani Tahrirlash</h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
-
         <div class="modal-body">
           <div class="form-group">
             <label>Xona raqami *</label>
@@ -574,9 +547,7 @@ onMounted(() => {
                 :class="{ 'input-error': formErrors.number }"
                 @input="formErrors.number = ''"
             />
-            <p v-if="formErrors.number" class="error-message">
-              {{ formErrors.number }}
-            </p>
+            <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
           </div>
 
           <div class="form-group">
@@ -588,17 +559,11 @@ onMounted(() => {
                 @change="formErrors.roomTypeId = ''"
             >
               <option :value="null" disabled>Xona turini tanlang</option>
-              <option
-                  v-for="type in roomTypes"
-                  :key="type.id"
-                  :value="type.id"
-              >
+              <option v-for="type in roomTypes" :key="type.id" :value="type.id">
                 {{ type.name }}
               </option>
             </select>
-            <p v-if="formErrors.roomTypeId" class="error-message">
-              {{ formErrors.roomTypeId }}
-            </p>
+            <p v-if="formErrors.roomTypeId" class="error-message">{{ formErrors.roomTypeId }}</p>
           </div>
 
           <div class="form-group">
@@ -615,7 +580,7 @@ onMounted(() => {
             </label>
           </div>
 
-          <div v-if="editForm.isRoom" class="form-group">
+          <div class="form-group" v-if="editForm.isRoom">
             <label>Sig'im (necha kishilik) *</label>
             <input
                 v-model.number="editForm.capacity"
@@ -626,75 +591,48 @@ onMounted(() => {
                 :class="{ 'input-error': formErrors.capacity }"
                 @input="formErrors.capacity = ''"
             />
-            <p v-if="formErrors.capacity" class="error-message">
-              {{ formErrors.capacity }}
-            </p>
+            <p v-if="formErrors.capacity" class="error-message">{{ formErrors.capacity }}</p>
           </div>
         </div>
-
         <div class="modal-footer">
-          <button
-              @click="closeEditModal"
-              class="btn-cancel"
-              :disabled="modalLoading.edit"
-          >
+          <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">
             Bekor qilish
           </button>
-          <button
-              @click="updateRoom"
-              class="btn-submit"
-              :disabled="modalLoading.edit"
-          >
-            {{ modalLoading.edit ? 'Saqlanmoqda...' : 'Saqlash' }}
+          <button @click="updateRoom" class="btn-submit" :disabled="editLoading">
+            <span v-if="editLoading">Saqlanmoqda...</span>
+            <span v-else>Saqlash</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Delete Modal -->
-    <div
-        v-if="modals.delete"
-        class="modal-overlay"
-        @click.self="closeDeleteModal"
-    >
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
           <h2>🗑️ O'chirishni tasdiqlash</h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
-
         <div class="modal-body">
           <p class="delete-warning">
             Haqiqatan ham ushbu xonani o'chirmoqchimisiz?
             <br><strong>Bu amalni ortga qaytarib bo'lmaydi!</strong>
           </p>
         </div>
-
         <div class="modal-footer">
-          <button
-              @click="closeDeleteModal"
-              class="btn-cancel"
-              :disabled="modalLoading.delete"
-          >
+          <button @click="closeDeleteModal" class="btn-cancel" :disabled="deleteLoading">
             Bekor qilish
           </button>
-          <button
-              @click="deleteRoom"
-              class="btn-delete-confirm"
-              :disabled="modalLoading.delete"
-          >
-            {{ modalLoading.delete ? 'O\'chirilmoqda...' : 'O\'chirish' }}
+          <button @click="deleteRoom" class="btn-delete-confirm" :disabled="deleteLoading">
+            <span v-if="deleteLoading">O'chirilmoqda...</span>
+            <span v-else>O'chirish</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Success/Error Modal -->
-    <div
-        v-if="modals.message"
-        class="modal-overlay"
-        @click.self="modals.message = false"
-    >
+    <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeSuccessModal">
       <div class="modal modal-message">
         <div class="modal-body message-body">
           <div :class="['message-icon', `icon-${modalMessage.type}`]">
@@ -703,10 +641,7 @@ onMounted(() => {
           </div>
           <h3 class="message-title">{{ modalMessage.title }}</h3>
           <p class="message-text">{{ modalMessage.text }}</p>
-          <button
-              @click="modals.message = false"
-              class="btn-message-ok"
-          >
+          <button @click="closeSuccessModal" class="btn-message-ok">
             OK
           </button>
         </div>
@@ -716,6 +651,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Previous styles remain the same... I'll only show the new/modified ones */
+
 .page-container {
   min-height: 100vh;
   background: #f5f7fa;
@@ -802,8 +739,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error */
@@ -827,7 +768,6 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.3s;
 }
 
 .btn-retry:hover {
@@ -947,11 +887,22 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .room-number {
   font-size: 1.8rem;
   font-weight: 700;
+}
+
+.room-type-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .room-body {
@@ -1077,13 +1028,12 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 1rem;
 }
 
 .modal {
   background: white;
   border-radius: 12px;
-  width: 100%;
+  width: 90%;
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   max-height: 90vh;
@@ -1127,17 +1077,10 @@ onMounted(() => {
   cursor: pointer;
   color: #666;
   transition: color 0.3s;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
 }
 
 .modal-close:hover {
   color: #333;
-  background: #f0f0f0;
 }
 
 .modal-body {
@@ -1159,25 +1102,21 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.form-input,
-.form-select {
+.form-input, .form-select {
   width: 100%;
   padding: 0.75rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
-  font-family: inherit;
 }
 
-.form-input:focus,
-.form-select:focus {
+.form-input:focus, .form-select:focus {
   outline: none;
   border-color: #667eea;
 }
 
-.form-input.input-error,
-.form-select.input-error {
+.form-input.input-error, .form-select.input-error {
   border-color: #ef4444;
 }
 
@@ -1213,7 +1152,6 @@ onMounted(() => {
   height: 20px;
   cursor: pointer;
   margin-top: 2px;
-  flex-shrink: 0;
 }
 
 .checkbox-text {
@@ -1368,7 +1306,6 @@ onMounted(() => {
   background: #5568d3;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
@@ -1378,13 +1315,10 @@ onMounted(() => {
     flex-direction: column;
     gap: 1rem;
     margin-left: 0;
-    padding: 1rem;
   }
 
   .header-left {
     width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .page-header h1 {
@@ -1398,21 +1332,11 @@ onMounted(() => {
   .info-header {
     flex-direction: column;
     text-align: center;
-    padding: 1.5rem;
-  }
-
-  .info-body {
-    padding: 1.5rem;
   }
 
   .info-row {
     flex-direction: column;
     gap: 0.5rem;
-    padding: 0.75rem 0;
-  }
-
-  .rooms-section {
-    padding: 1.5rem;
   }
 
   .rooms-grid {
@@ -1423,23 +1347,9 @@ onMounted(() => {
     flex-wrap: wrap;
   }
 
-  .btn-view-room {
-    width: 100%;
-  }
-
   .modal {
-    max-width: 100%;
-    margin: 0;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
-  .modal-large {
-    max-width: 100%;
-  }
-
-  .modal-small {
-    max-width: 100%;
+    width: 95%;
+    margin: 1rem;
   }
 }
 </style>
