@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { setupApiInterceptor } from './utils/apiInterceptor'
+import { setupApiInterceptor } from './utils/ApiInterceptor.js'
 import './style.css'
 
 const app = createApp(App)
