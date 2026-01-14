@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import {ref, onMounted} from 'vue'
+import {useRouter, useRoute} from 'vue-router'
+import {useAuthStore} from '../stores/auth'
 import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
@@ -21,6 +21,43 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showSuccessModal = ref(false)
 const showLeaderModal = ref(false)
+
+function copyTelegramLink(randomString) {
+  const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(telegramLink).then(() => {
+        showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+      })
+    } else {
+      copyToClipboardFallback(telegramLink)
+    }
+  } catch (err) {
+    copyToClipboardFallback(telegramLink)
+  }
+}
+
+function copyToClipboardFallback(text) {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-999999px'
+  document.body.appendChild(textArea)
+
+  try {
+    textArea.select()
+    const successful = document.execCommand('copy')
+
+    if (successful) {
+      showSuccessMessage('Muvaffaqiyatli!', 'Havolasi nusxalandi')
+    }
+  } catch (err) {
+    showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
+  } finally {
+    document.body.removeChild(textArea)
+  }
+}
 
 // Form data
 const createForm = ref({
@@ -487,7 +524,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <SideMenu />
+    <SideMenu/>
 
     <div class="page-header">
       <div class="header-left">
@@ -559,12 +596,12 @@ onMounted(() => {
                 <div class="floor-info-item">
                   <span class="floor-label">Qavat rahbari:</span>
                   <span class="floor-value">
-                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
-                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
-                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
-                    </span>
-                    <span v-else class="no-data">Tayinlanmagan</span>
-                  </span>
+      <span v-if="floor.leaderFirstName || floor.leaderLastName">
+        {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
+        <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
+      </span>
+      <span v-else class="no-data">Tayinlanmagan</span>
+    </span>
                 </div>
 
                 <!-- Rooms Count -->
@@ -573,16 +610,17 @@ onMounted(() => {
                   <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
                 </div>
 
-                <!-- Telegram Link -->
+                <!-- ✅ TELEGRAM LINK -->
                 <div class="floor-info-item" v-if="floor.randomString">
                   <span class="floor-label">Taklif havolasi:</span>
                   <div class="telegram-link-container">
-                    <span class="telegram-link">
-                      https://t.me/nlw_support_bot?start={{ floor.randomString }}
-                    </span>
+      <span class="telegram-link">
+        https://t.me/nlw_support_bot?start={{ floor.randomString }}
+      </span>
                     <button
                         @click="copyTelegramLink(floor.randomString)"
                         class="btn-copy-link"
+                        title="Havolani nusxalash"
                     >
                       📋 Nusxalash
                     </button>
@@ -997,8 +1035,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-card {
