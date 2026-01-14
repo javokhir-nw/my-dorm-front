@@ -478,23 +478,6 @@ async function deleteFloor() {
   }
 }
 
-// Telegram Link Copy (Floor List)
-function copyTelegramLink(randomString) {
-  const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
-
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(telegramLink).then(() => {
-        showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
-      })
-    } else {
-      copyToClipboardFallback(telegramLink)
-    }
-  } catch (err) {
-    copyToClipboardFallback(telegramLink)
-  }
-}
-
 onMounted(() => {
   fetchDormitoryDetail()
 })
