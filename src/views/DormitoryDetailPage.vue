@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -24,13 +24,15 @@ const showSuccessModal = ref(false)
 // Form data
 const createForm = ref({
   name: '',
-  dormId: dormitoryId
+  dormId: dormitoryId,
+  randomString: ''
 })
 
 const editForm = ref({
   id: 0,
   name: '',
-  dormId: dormitoryId
+  dormId: dormitoryId,
+  randomString: ''
 })
 
 const deleteId = ref(null)
@@ -46,6 +48,7 @@ const modalMessage = ref({
 const createLoading = ref(false)
 const editLoading = ref(false)
 const deleteLoading = ref(false)
+const generatingRandomString = ref(false)
 
 // Form validation error
 const formError = ref('')
@@ -54,14 +57,12 @@ function goBack() {
   router.push('/dormitories')
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitoryDetail() {
   loading.value = true
   error.value = ''
 
   try {
     const response = await axios.get(`/api/dorm/get/${dormitoryId}`)
-
     dormitory.value = response.data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
@@ -98,21 +99,52 @@ function closeSuccessModal() {
   showSuccessModal.value = false
 }
 
+// ✅ YO'ZGARTIRILDI - Random String Generate Qilish
+async function generateRandomString(isEdit = false) {
+  generatingRandomString.value = true
+
+  try {
+    const response = await axios.get('/api/util/generate-random-string')
+    const randomString = response.data // Backend "string" ko'rinishida qaytaradi
+
+    if (isEdit) {
+      editForm.value.randomString = randomString
+    } else {
+      createForm.value.randomString = randomString
+    }
+  } catch (err) {
+    console.error('Random string generate error:', err)
+    showErrorMessage('Xatolik!', 'Random string yaratishda xatolik yuz berdi')
+  } finally {
+    generatingRandomString.value = false
+  }
+}
+
 // Create Floor
-function openCreateModal() {
-  createForm.value.name = ''
-  createForm.value.dormId = dormitoryId
+async function openCreateModal() {
+  createForm.value = {
+    name: '',
+    dormId: dormitoryId,
+    randomString: ''
+  }
   formError.value = ''
   showCreateModal.value = true
+
+  // Avtomatik random string generate qilish
+  await generateRandomString(false)
 }
 
 function closeCreateModal() {
   showCreateModal.value = false
-  createForm.value.name = ''
+  createForm.value = {
+    name: '',
+    dormId: dormitoryId,
+    randomString: ''
+  }
   formError.value = ''
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
+// ✅ YO'ZGARTIRILDI - Random String bilan Create
 async function createFloor() {
   formError.value = ''
 
@@ -121,12 +153,18 @@ async function createFloor() {
     return
   }
 
+  if (!createForm.value.randomString.trim()) {
+    formError.value = 'Iltimos, random string generate qiling!'
+    return
+  }
+
   createLoading.value = true
 
   try {
     const response = await axios.post('/api/floor/create', {
       name: createForm.value.name.trim(),
-      dormId: parseInt(dormitoryId)
+      dormId: parseInt(dormitoryId),
+      randomString: createForm.value.randomString.trim()
     })
 
     closeCreateModal()
@@ -140,22 +178,29 @@ async function createFloor() {
 }
 
 // Edit Floor
-function openEditModal(floor) {
-  editForm.value.id = floor.id
-  editForm.value.name = floor.name
-  editForm.value.dormId = dormitoryId
+async function openEditModal(floor) {
+  editForm.value = {
+    id: floor.id,
+    name: floor.name,
+    dormId: dormitoryId,
+    randomString: floor.randomString || ''
+  }
   formError.value = ''
   showEditModal.value = true
 }
 
 function closeEditModal() {
   showEditModal.value = false
-  editForm.value.id = 0
-  editForm.value.name = ''
+  editForm.value = {
+    id: 0,
+    name: '',
+    dormId: dormitoryId,
+    randomString: ''
+  }
   formError.value = ''
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
+// ✅ YO'ZGARTIRILDI - Random String bilan Update
 async function updateFloor() {
   formError.value = ''
 
@@ -170,7 +215,8 @@ async function updateFloor() {
     const response = await axios.post('/api/floor/update', {
       id: editForm.value.id,
       name: editForm.value.name.trim(),
-      dormId: parseInt(dormitoryId)
+      dormId: parseInt(dormitoryId),
+      randomString: editForm.value.randomString.trim()
     })
 
     closeEditModal()
@@ -194,7 +240,6 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteFloor() {
   deleteLoading.value = true
 
@@ -210,6 +255,17 @@ async function deleteFloor() {
   } finally {
     deleteLoading.value = false
   }
+}
+
+// ✅ YO'ZGARTIRILDI - Telegram Link Copy Qilish
+function copyTelegramLink(randomString) {
+  const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
+
+  navigator.clipboard.writeText(telegramLink).then(() => {
+    showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+  }).catch(() => {
+    showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
+  })
 }
 
 onMounted(() => {
@@ -304,6 +360,23 @@ onMounted(() => {
                   <span class="floor-label">Xonalar:</span>
                   <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
                 </div>
+
+                <!-- ✅ YO'ZGARTIRILDI - Telegram Link va Copy Button -->
+                <div class="floor-info-item" v-if="floor.randomString">
+                  <span class="floor-label">Taklif havolasi:</span>
+                  <div class="telegram-link-container">
+                    <span class="telegram-link">
+                      https://t.me/nlw_support_bot?start={{ floor.randomString }}
+                    </span>
+                    <button
+                        @click="copyTelegramLink(floor.randomString)"
+                        class="btn-copy-link"
+                        title="Havolani nusxalash"
+                    >
+                      📋 Nusxalash
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div class="floor-footer">
@@ -344,6 +417,31 @@ onMounted(() => {
             />
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
+
+          <!-- ✅ YO'ZGARTIRILDI - Random String Section -->
+          <div class="form-group">
+            <label>Qavat Identifikatori (Random String) *</label>
+            <div class="random-string-container">
+              <input
+                  v-model="createForm.randomString"
+                  type="text"
+                  placeholder="Random string avtomatik yaratiladi"
+                  class="form-input"
+                  readonly
+                  @click="$event.target.select()"
+              />
+              <button
+                  @click="generateRandomString(false)"
+                  class="btn-regenerate"
+                  :disabled="generatingRandomString"
+                  title="Yangi random string yaratish"
+              >
+                <span v-if="generatingRandomString">⏳</span>
+                <span v-else>🔄 Qayta yaratish</span>
+              </button>
+            </div>
+            <p class="help-text">Bu string qavat uchun noyob identifikator bo'lib xizmat qiladi</p>
+          </div>
         </div>
         <div class="modal-footer">
           <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
@@ -377,6 +475,31 @@ onMounted(() => {
                 @input="formError = ''"
             />
             <p v-if="formError" class="error-message">{{ formError }}</p>
+          </div>
+
+          <!-- ✅ YO'ZGARTIRILDI - Random String Display in Edit -->
+          <div class="form-group">
+            <label>Qavat Identifikatori</label>
+            <div class="random-string-container">
+              <input
+                  v-model="editForm.randomString"
+                  type="text"
+                  placeholder="Random string"
+                  class="form-input"
+                  readonly
+                  @click="$event.target.select()"
+              />
+              <button
+                  @click="generateRandomString(true)"
+                  class="btn-regenerate"
+                  :disabled="generatingRandomString"
+                  title="Yangi random string yaratish"
+              >
+                <span v-if="generatingRandomString">⏳</span>
+                <span v-else>🔄 Qayta yaratish</span>
+              </button>
+            </div>
+            <p class="help-text">Kerakli bo'lsa yangi random string yaratishingiz mumkin</p>
           </div>
         </div>
         <div class="modal-footer">
@@ -702,6 +825,42 @@ onMounted(() => {
   font-style: italic;
 }
 
+/* ✅ YO'ZGARTIRILDI - Telegram Link Styles */
+.telegram-link-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.telegram-link {
+  background: #f0f0f0;
+  color: #333;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  word-break: break-all;
+  flex: 1;
+  font-family: monospace;
+}
+
+.btn-copy-link {
+  padding: 0.5rem 1rem;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.btn-copy-link:hover {
+  background: #0284c7;
+}
+
 .floor-footer {
   padding: 1rem 1.5rem;
   background: white;
@@ -849,7 +1008,7 @@ onMounted(() => {
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
@@ -866,6 +1025,7 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  font-family: monospace;
 }
 
 .form-input:focus {
@@ -875,6 +1035,51 @@ onMounted(() => {
 
 .form-input.input-error {
   border-color: #ef4444;
+}
+
+.form-input[readonly] {
+  background: #f5f5f5;
+  cursor: text;
+}
+
+/* ✅ YO'ZGARTIRILDI - Random String Container */
+.random-string-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.random-string-container .form-input {
+  flex: 1;
+}
+
+.btn-regenerate {
+  padding: 0.75rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.btn-regenerate:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-regenerate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.help-text {
+  font-size: 0.85rem;
+  color: #999;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
 }
 
 .error-message {
@@ -1060,6 +1265,22 @@ onMounted(() => {
   .modal {
     width: 95%;
     margin: 1rem;
+  }
+
+  .random-string-container {
+    flex-direction: column;
+  }
+
+  .btn-regenerate {
+    width: 100%;
+  }
+
+  .telegram-link-container {
+    flex-direction: column;
+  }
+
+  .btn-copy-link {
+    width: 100%;
   }
 }
 </style>
