@@ -2,6 +2,7 @@
 import {ref, onMounted, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -105,33 +106,26 @@ function goBack() {
   router.push('/dashboard')
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchUsers() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/user/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: currentPage.value - 1,
-        size: pageSize.value,
-        search: {
-          value: searchQuery.value || null,
-          dormId: filterDormId.value,
-          floorId: filterFloorId.value,
-          roomId: filterRoomId.value
-        }
-      })
+    const response = await axios.post('/api/user/list', {
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      search: {
+        value: searchQuery.value || null,
+        dormId: filterDormId.value,
+        floorId: filterFloorId.value,
+        roomId: filterRoomId.value
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Foydalanuvchilarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    users.value = data.list || []
-    total.value = data.total || 0
-    totalPages.value = data.totalPages || Math.ceil(total.value / pageSize.value)
+    users.value = response.data.list || []
+    total.value = response.data.total || 0
+    totalPages.value = response.data.totalPages || Math.ceil(total.value / pageSize.value)
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -141,27 +135,20 @@ async function fetchUsers() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitories() {
   loadingDorms.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: 0,
-        size: 100,
-        search: {
-          value: null
-        }
-      })
+    const response = await axios.post('/api/dorm/list', {
+      page: 0,
+      size: 100,
+      search: {
+        value: null
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    dormitories.value = data.list || []
+    dormitories.value = response.data.list || []
   } catch (err) {
     console.error('Dormitories fetch error:', err)
   } finally {
@@ -169,6 +156,7 @@ async function fetchDormitories() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloors(dormId, isFilter = false) {
   if (!dormId) {
     if (isFilter) {
@@ -186,29 +174,18 @@ async function fetchFloors(dormId, isFilter = false) {
   loadingRef.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/floor/list/${dormId}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            page: 0,
-            size: 1000,
-            search: {
-              value: null
-            }
-          })
-        }
-    )
+    const response = await axios.post(`/api/floor/list/${dormId}`, {
+      page: 0,
+      size: 1000,
+      search: {
+        value: null
+      }
+    })
 
-    if (!response.ok) {
-      throw new Error('Qavatlarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
     if (isFilter) {
-      filterFloors.value = data.list || []
+      filterFloors.value = response.data.list || []
     } else {
-      floors.value = data.list || []
+      floors.value = response.data.list || []
     }
   } catch (err) {
     console.error('Floors fetch error:', err)
@@ -217,6 +194,7 @@ async function fetchFloors(dormId, isFilter = false) {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRooms(floorId, isFilter = false) {
   if (!floorId) {
     if (isFilter) {
@@ -232,22 +210,12 @@ async function fetchRooms(floorId, isFilter = false) {
   loadingRef.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/room/list/${floorId}`,
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get(`/api/room/list/${floorId}`)
 
-    if (!response.ok) {
-      throw new Error('Xonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
     if (isFilter) {
-      filterRooms.value = data || []
+      filterRooms.value = response.data || []
     } else {
-      rooms.value = data || []
+      rooms.value = response.data || []
     }
   } catch (err) {
     console.error('Rooms fetch error:', err)
@@ -256,23 +224,14 @@ async function fetchRooms(floorId, isFilter = false) {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoles() {
   loadingRoles.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        'http://localhost:8080/api/role/list',
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get('/api/role/list')
 
-    if (!response.ok) {
-      throw new Error('Rollarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    roles.value = data || []
+    roles.value = response.data || []
   } catch (err) {
     console.error('Roles fetch error:', err)
   } finally {
@@ -280,6 +239,7 @@ async function fetchRoles() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloorsForEdit(dormId) {
   if (!dormId) {
     editFloors.value = []
@@ -287,31 +247,21 @@ async function fetchFloorsForEdit(dormId) {
   }
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/floor/list/${dormId}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            page: 0,
-            size: 1000,
-            search: {
-              value: null
-            }
-          })
-        }
-    )
+    const response = await axios.post(`/api/floor/list/${dormId}`, {
+      page: 0,
+      size: 1000,
+      search: {
+        value: null
+      }
+    })
 
-    if (!response.ok) {
-      throw new Error('Qavatlarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    editFloors.value = data.list || []
+    editFloors.value = response.data.list || []
   } catch (err) {
     console.error('Edit floors fetch error:', err)
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomsForEdit(floorId) {
   if (!floorId) {
     editRooms.value = []
@@ -319,19 +269,9 @@ async function fetchRoomsForEdit(floorId) {
   }
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/room/list/${floorId}`,
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get(`/api/room/list/${floorId}`)
 
-    if (!response.ok) {
-      throw new Error('Xonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    editRooms.value = data || []
+    editRooms.value = response.data || []
   } catch (err) {
     console.error('Edit rooms fetch error:', err)
   }
@@ -398,30 +338,21 @@ function clearFormErrors() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function checkUsernameExists(username, userId = null) {
   if (!username || !username.trim()) {
     return false
   }
 
   try {
-    const url = new URL('http://localhost:8080/api/auth/check-exist-username')
-    url.searchParams.append('username', username.trim())
-
-    // Agar userId mavjud bo'lsa qo'shamiz, aks holda qo'shmaymiz
-    if (userId) {
-      url.searchParams.append('id', userId.toString())
-    }
-
-    const response = await authStore.makeAuthenticatedRequest(url.toString(), {
-      method: 'GET'
+    const response = await axios.get('/api/auth/check-exist-username', {
+      params: {
+        username: username.trim(),
+        ...(userId && { id: userId.toString() })
+      }
     })
 
-    if (!response.ok) {
-      console.error('Username check failed:', response.status)
-      return false
-    }
-
-    const exists = await response.json()
+    const exists = response.data
     console.log('Username check result:', { username, userId, exists })
     return exists === true
   } catch (err) {
@@ -444,7 +375,6 @@ async function validateForm(form, isEdit = false) {
     isValid = false
   }
 
-  // Username majburiy emas, lekin agar kiritilgan bo'lsa tekshiramiz
   if (form.username && form.username.trim()) {
     console.log('Checking username:', form.username, 'isEdit:', isEdit, 'userId:', form.id)
     const userId = isEdit ? form.id : null
@@ -457,15 +387,6 @@ async function validateForm(form, isEdit = false) {
       isValid = false
     }
   }
-
-  // Parol faqat create da majburiy, update da ixtiyoriy
-  // Create da ham majburiy emas
-  // if (!isEdit && (!form.password || !form.password.trim())) {
-  //   formErrors.value.password = 'Parolni kiriting!'
-  //   isValid = false
-  // }
-
-  // Telefon majburiy emas
 
   return isValid
 }
@@ -504,6 +425,7 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createUser() {
   if (!validateForm(createForm.value)) {
     return
@@ -512,26 +434,19 @@ async function createUser() {
   createLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/user/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        firstName: createForm.value.firstName.trim(),
-        lastName: createForm.value.lastName.trim(),
-        middleName: createForm.value.middleName?.trim() || '',
-        username: createForm.value.username.trim(),
-        password: createForm.value.password.trim(),
-        telegramUsername: createForm.value.telegramUsername?.trim() || '',
-        phone: createForm.value.phone.trim(),
-        roleId: createForm.value.roleId,
-        dormId: createForm.value.dormId,
-        floorId: createForm.value.floorId,
-        roomId: createForm.value.roomId
-      })
+    const response = await axios.post('/api/user/create', {
+      firstName: createForm.value.firstName.trim(),
+      lastName: createForm.value.lastName.trim(),
+      middleName: createForm.value.middleName?.trim() || '',
+      username: createForm.value.username.trim(),
+      password: createForm.value.password.trim(),
+      telegramUsername: createForm.value.telegramUsername?.trim() || '',
+      phone: createForm.value.phone.trim(),
+      roleId: createForm.value.roleId,
+      dormId: createForm.value.dormId,
+      floorId: createForm.value.floorId,
+      roomId: createForm.value.roomId
     })
-
-    if (!response.ok) {
-      throw new Error('Foydalanuvchi yaratishda xatolik')
-    }
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli yaratildi')
@@ -545,7 +460,6 @@ async function createUser() {
 
 // Edit User
 async function openEditModal(user) {
-  // roleIds arraydan birinchi element olish (agar array bo'lsa)
   let selectedRoleId = null
   if (user.roleIds && Array.isArray(user.roleIds) && user.roleIds.length > 0) {
     selectedRoleId = user.roleIds[0]
@@ -575,7 +489,6 @@ async function openEditModal(user) {
     await fetchRoles()
   }
 
-  // Load floors and rooms if dorm and floor are selected
   if (editForm.value.dormId) {
     await fetchFloorsForEdit(editForm.value.dormId)
     if (editForm.value.floorId) {
@@ -591,6 +504,7 @@ function closeEditModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateUser() {
   if (!validateForm(editForm.value, true)) {
     return
@@ -613,19 +527,11 @@ async function updateUser() {
       roomId: editForm.value.roomId
     }
 
-    // Only add password if it's not empty
     if (editForm.value.password && editForm.value.password.trim()) {
       requestBody.password = editForm.value.password.trim()
     }
 
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/user/update', {
-      method: 'PUT',
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      throw new Error('Foydalanuvchini yangilashda xatolik')
-    }
+    const response = await axios.post('/api/user/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli yangilandi')
@@ -648,17 +554,12 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteUser() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/user/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Foydalanuvchini o\'chirishda xatolik')
-    }
+    const response = await axios.delete(`/api/user/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli o\'chirildi')

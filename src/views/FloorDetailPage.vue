@@ -2,6 +2,7 @@
 import {ref, onMounted} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -74,24 +75,14 @@ function goBack() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloorDetail() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/floor/get/${floorId}`,
-        {
-          method: 'GET'
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Qavat ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    floor.value = data
+    const response = await axios.get(`/api/floor/get/${floorId}`)
+    floor.value = response.data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -101,23 +92,13 @@ async function fetchFloorDetail() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomTypes() {
   loadingRoomTypes.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        'http://localhost:8080/api/room-type/list',
-        {
-          method: 'GET'
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Xona turlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    roomTypes.value = data
+    const response = await axios.get('/api/room-type/list')
+    roomTypes.value = response.data
   } catch (err) {
     console.error('Room types fetch error:', err)
   } finally {
@@ -209,6 +190,7 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createRoom() {
   if (!validateForm(createForm.value)) {
     return
@@ -230,14 +212,7 @@ async function createRoom() {
       requestBody.capacity = parseInt(createForm.value.capacity)
     }
 
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/create', {
-      method: 'POST',
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      throw new Error('Xona yaratishda xatolik')
-    }
+    const response = await axios.post('/api/room/create', requestBody)
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yaratildi')
@@ -274,6 +249,7 @@ function closeEditModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateRoom() {
   if (!validateForm(editForm.value)) {
     return
@@ -296,14 +272,7 @@ async function updateRoom() {
       requestBody.capacity = parseInt(editForm.value.capacity)
     }
 
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/room/update', {
-      method: 'POST',
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      throw new Error('Xonani yangilashda xatolik')
-    }
+    const response = await axios.post('/api/room/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli yangilandi')
@@ -326,17 +295,12 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteRoom() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/room/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Xonani o\'chirishda xatolik')
-    }
+    const response = await axios.delete(`/api/room/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona muvaffaqiyatli o\'chirildi')

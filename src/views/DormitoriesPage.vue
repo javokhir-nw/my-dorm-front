@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -55,30 +56,23 @@ function goBack() {
   router.push('/dashboard')
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitories() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: currentPage.value - 1,
-        size: pageSize.value,
-        search: {
-          value: searchQuery.value || ''
-        }
-      })
+    const response = await axios.post('/api/dorm/list', {
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      search: {
+        value: searchQuery.value || ''
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    dormitories.value = data.list || []
-    total.value = data.total || 0
-    totalPages.value = data.totalPages || Math.ceil(total.value / pageSize.value)
+    dormitories.value = response.data.list || []
+    total.value = response.data.total || 0
+    totalPages.value = response.data.totalPages || Math.ceil(total.value / pageSize.value)
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -145,6 +139,7 @@ function closeCreateModal() {
   formError.value = ''
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createDormitory() {
   formError.value = ''
 
@@ -156,16 +151,9 @@ async function createDormitory() {
   createLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: createForm.value.name.trim()
-      })
+    const response = await axios.post('/api/dorm/create', {
+      name: createForm.value.name.trim()
     })
-
-    if (!response.ok) {
-      throw new Error('Yotoqxona yaratishda xatolik')
-    }
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yaratildi')
@@ -192,6 +180,7 @@ function closeEditModal() {
   formError.value = ''
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateDormitory() {
   formError.value = ''
 
@@ -203,17 +192,10 @@ async function updateDormitory() {
   editLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/update', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: editForm.value.id,
-        name: editForm.value.name.trim()
-      })
+    const response = await axios.post('/api/dorm/update', {
+      id: editForm.value.id,
+      name: editForm.value.name.trim()
     })
-
-    if (!response.ok) {
-      throw new Error('Yotoqxonani yangilashda xatolik')
-    }
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli yangilandi')
@@ -236,17 +218,12 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteDormitory() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/dorm/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Yotoqxonani o\'chirishda xatolik')
-    }
+    const response = await axios.delete(`/api/dorm/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Yotoqxona muvaffaqiyatli o\'chirildi')

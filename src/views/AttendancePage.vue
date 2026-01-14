@@ -2,6 +2,7 @@
 import {ref, onMounted, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -44,33 +45,26 @@ function viewAttendanceDetail(attendanceId) {
   router.push(`/attendance/${attendanceId}`)
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash (baseURL avtomatik)
 async function fetchAttendances() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/attendance/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: currentPage.value - 1,
-        size: pageSize.value,
-        search: {
-          value: searchQuery.value || null,
-          dormId: filterDormId.value,
-          floorId: filterFloorId.value,
-          date: selectedDate.value
-        }
-      })
+    const response = await axios.post('/api/attendance/list', {
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      search: {
+        value: searchQuery.value || null,
+        dormId: filterDormId.value,
+        floorId: filterFloorId.value,
+        date: selectedDate.value
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Davomat ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    attendances.value = data.list || []
-    total.value = data.total || 0
-    totalPages.value = data.totalPages || Math.ceil(total.value / pageSize.value)
+    attendances.value = response.data.list || []
+    total.value = response.data.total || 0
+    totalPages.value = response.data.totalPages || Math.ceil(total.value / pageSize.value)
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -80,27 +74,20 @@ async function fetchAttendances() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash (baseURL avtomatik)
 async function fetchDormitories() {
   loadingDorms.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/dorm/list', {
-      method: 'POST',
-      body: JSON.stringify({
-        page: 0,
-        size: 100,
-        search: {
-          value: null
-        }
-      })
+    const response = await axios.post('/api/dorm/list', {
+      page: 0,
+      size: 100,
+      search: {
+        value: null
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Yotoqxonalarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    dormitories.value = data.list || []
+    dormitories.value = response.data.list || []
   } catch (err) {
     console.error('Dormitories fetch error:', err)
   } finally {
@@ -108,6 +95,7 @@ async function fetchDormitories() {
   }
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash (baseURL avtomatik)
 async function fetchFloors(dormId) {
   if (!dormId) {
     filterFloors.value = []
@@ -116,26 +104,15 @@ async function fetchFloors(dormId) {
   }
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/floor/list/${dormId}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            page: 0,
-            size: 1000,
-            search: {
-              value: null
-            }
-          })
-        }
-    )
+    const response = await axios.post(`/api/floor/list/${dormId}`, {
+      page: 0,
+      size: 1000,
+      search: {
+        value: null
+      }
+    })
 
-    if (!response.ok) {
-      throw new Error('Qavatlarni yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    filterFloors.value = data.list || []
+    filterFloors.value = response.data.list || []
   } catch (err) {
     console.error('Floors fetch error:', err)
   }

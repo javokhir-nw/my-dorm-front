@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,6 +22,7 @@ const isCheckingUsername = ref(false)
 const isUsernameValid = ref(false)
 const usernameError = ref('')
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 watch(username, async (newUsername) => {
   if (!newUsername || newUsername.length < 3) {
     isUsernameValid.value = false
@@ -32,12 +34,14 @@ watch(username, async (newUsername) => {
   usernameError.value = ''
 
   try {
-    const response = await fetch(
-      `http://localhost:8080/api/auth/check-exist-username?username=${newUsername}`
-    )
-    
-    const isAvailable = await response.json()
-    
+    const response = await axios.get('/api/auth/check-exist-username', {
+      params: {
+        username: newUsername
+      }
+    })
+
+    const isAvailable = response.data
+
     if (isAvailable === true) {
       isUsernameValid.value = true
       usernameError.value = ''
@@ -56,7 +60,7 @@ watch(username, async (newUsername) => {
 
 async function handleRegister() {
   error.value = ''
-  
+
   if (!firstName.value || !lastName.value || !username.value || !password.value || !confirmPassword.value) {
     error.value = 'Majburiy maydonlarni to\'ldiring!'
     return

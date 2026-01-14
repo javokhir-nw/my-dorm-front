@@ -3,6 +3,7 @@ import {ref, computed, onMounted} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
 import SideMenu from '../views/SideMenu.vue'
+import axios from 'axios'  // ✅ ADD THIS
 
 const router = useRouter()
 const route = useRoute()
@@ -17,7 +18,7 @@ const attendanceId = route.params.id
 // Filter states
 const searchQuery = ref('')
 const filterRoomId = ref(null)
-const filterAttendance = ref(null) // null = all, true = attended, false = not attended
+const filterAttendance = ref(null)
 
 // Computed list of unique rooms for filter dropdown
 const rooms = computed(() => {
@@ -102,24 +103,15 @@ function goBack() {
   router.push('/attendance')
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash (baseURL avtomatik qo'shiladi)
 async function fetchAttendanceDetail() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/attendance/get/${attendanceId}`,
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get(`/api/attendance/get/${attendanceId}`)
 
-    if (!response.ok) {
-      throw new Error('Davomat ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    attendance.value = data
+    attendance.value = response.data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'

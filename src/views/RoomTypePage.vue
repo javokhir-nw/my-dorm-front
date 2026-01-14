@@ -1,6 +1,7 @@
 <script setup>
 import {ref, onMounted} from 'vue'
 import {useAuthStore} from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const authStore = useAuthStore()
@@ -44,24 +45,15 @@ const formErrors = ref({
   name: ''
 })
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomTypes() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        'http://localhost:8080/api/room-type/list',
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get('/api/room-type/list')
 
-    if (!response.ok) {
-      throw new Error('Xona turlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    roomTypes.value = data
+    roomTypes.value = response.data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -125,6 +117,7 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createRoomType() {
   if (!validateForm(createForm.value)) {
     return
@@ -137,17 +130,7 @@ async function createRoomType() {
       name: createForm.value.name.trim()
     }
 
-    const response = await authStore.makeAuthenticatedRequest(
-        'http://localhost:8080/api/room-type/create',
-        {
-          method: 'POST',
-          body: JSON.stringify(requestBody)
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Xona turini yaratishda xatolik')
-    }
+    const response = await axios.post('/api/room-type/create', requestBody)
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli yaratildi')
@@ -174,6 +157,7 @@ function closeEditModal() {
   clearFormErrors()
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateRoomType() {
   if (!validateForm(editForm.value)) {
     return
@@ -187,17 +171,7 @@ async function updateRoomType() {
       name: editForm.value.name.trim()
     }
 
-    const response = await authStore.makeAuthenticatedRequest(
-        'http://localhost:8080/api/room-type/update',
-        {
-          method: 'PUT',
-          body: JSON.stringify(requestBody)
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Xona turini yangilashda xatolik')
-    }
+    const response = await axios.post('/api/room-type/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli yangilandi')
@@ -220,20 +194,12 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteRoomType() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/room-type/delete/${deleteId.value}`,
-        {
-          method: 'DELETE'
-        }
-    )
-
-    if (!response.ok) {
-      throw new Error('Xona turini o\'chirishda xatolik')
-    }
+    const response = await axios.delete(`/api/room-type/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli o\'chirildi')

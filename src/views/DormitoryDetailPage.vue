@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import axios from 'axios'  // ✅ ADD THIS
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -53,24 +54,15 @@ function goBack() {
   router.push('/dormitories')
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitoryDetail() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(
-        `http://localhost:8080/api/dorm/get/${dormitoryId}`,
-        {
-          method: 'GET'
-        }
-    )
+    const response = await axios.get(`/api/dorm/get/${dormitoryId}`)
 
-    if (!response.ok) {
-      throw new Error('Yotoqxona ma\'lumotlarini yuklashda xatolik')
-    }
-
-    const data = await response.json()
-    dormitory.value = data
+    dormitory.value = response.data
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -120,6 +112,7 @@ function closeCreateModal() {
   formError.value = ''
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createFloor() {
   formError.value = ''
 
@@ -131,17 +124,10 @@ async function createFloor() {
   createLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/floor/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: createForm.value.name.trim(),
-        dormId: parseInt(dormitoryId)
-      })
+    const response = await axios.post('/api/floor/create', {
+      name: createForm.value.name.trim(),
+      dormId: parseInt(dormitoryId)
     })
-
-    if (!response.ok) {
-      throw new Error('Qavat yaratishda xatolik')
-    }
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli yaratildi')
@@ -169,6 +155,7 @@ function closeEditModal() {
   formError.value = ''
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateFloor() {
   formError.value = ''
 
@@ -180,18 +167,11 @@ async function updateFloor() {
   editLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest('http://localhost:8080/api/floor/update', {
-      method: 'PUT',
-      body: JSON.stringify({
-        id: editForm.value.id,
-        name: editForm.value.name.trim(),
-        dormId: parseInt(dormitoryId)
-      })
+    const response = await axios.post('/api/floor/update', {
+      id: editForm.value.id,
+      name: editForm.value.name.trim(),
+      dormId: parseInt(dormitoryId)
     })
-
-    if (!response.ok) {
-      throw new Error('Qavatni yangilashda xatolik')
-    }
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli yangilandi')
@@ -214,17 +194,12 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
+// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteFloor() {
   deleteLoading.value = true
 
   try {
-    const response = await authStore.makeAuthenticatedRequest(`http://localhost:8080/api/floor/delete/${deleteId.value}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('Qavatni o\'chirishda xatolik')
-    }
+    const response = await axios.delete(`/api/floor/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Qavat muvaffaqiyatli o\'chirildi')
