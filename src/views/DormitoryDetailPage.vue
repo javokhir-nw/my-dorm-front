@@ -363,14 +363,48 @@ async function deleteFloor() {
 }
 
 // Telegram Link Copy
-function copyTelegramLink(randomString) {
+async function copyTelegramLink(randomString) {
   const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
+  
+  try {
+    // Modern browsers uchun
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(telegramLink)
+      showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+    } else {
+      // Older browsers va mobile uchun fallback
+      copyToClipboardFallback(telegramLink)
+    }
+  } catch (err) {
+    console.error('Copy error:', err)
+    // Agar clipboard fail bo'lsa fallback
+    copyToClipboardFallback(telegramLink)
+  }
+}
 
-  navigator.clipboard.writeText(telegramLink).then(() => {
-    showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
-  }).catch(() => {
+// Fallback method - barcha devicelarda ishlaydi
+function copyToClipboardFallback(text) {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-999999px'
+  textArea.style.top = '-999999px'
+  document.body.appendChild(textArea)
+  
+  try {
+    textArea.select()
+    const successful = document.execCommand('copy')
+    
+    if (successful) {
+      showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+    } else {
+      showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
+    }
+  } catch (err) {
     showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
-  })
+  } finally {
+    document.body.removeChild(textArea)
+  }
 }
 
 onMounted(() => {
