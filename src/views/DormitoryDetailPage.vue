@@ -336,28 +336,6 @@ function copyEditLink() {
   }
 }
 
-// Fallback copy
-function copyToClipboardFallback(text) {
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  textArea.style.position = 'fixed'
-  textArea.style.left = '-999999px'
-  document.body.appendChild(textArea)
-
-  try {
-    textArea.select()
-    const successful = document.execCommand('copy')
-
-    if (successful) {
-      showSuccessMessage('Muvaffaqiyatli!', 'Havolasi nusxalandi')
-    }
-  } catch (err) {
-    showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
-  } finally {
-    document.body.removeChild(textArea)
-  }
-}
-
 // Create Floor
 function openCreateModal() {
   createForm.value = {
