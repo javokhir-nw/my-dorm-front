@@ -248,24 +248,24 @@ function clearEditLeader() {
 
 // Get selected leader name (Create Modal)
 function getSelectedLeaderName() {
-  if (!createForm.value.leaderId) return 'Rahbari tanlang'
+  if (!createForm.value.leaderId) return 'Sardor tanlang'
 
   const leader = leaders.value.find(u => u.id === createForm.value.leaderId)
   if (leader) {
     return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
   }
-  return 'Rahbari tanlang'
+  return 'Sardor tanlang'
 }
 
 // Get selected leader name (Edit Modal)
 function getSelectedEditLeaderName() {
-  if (!editForm.value.leaderId) return 'Rahbari tanlang'
+  if (!editForm.value.leaderId) return 'Sardor tanlang'
 
   const leader = editModalLeaders.value.find(u => u.id === editForm.value.leaderId)
   if (leader) {
     return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
   }
-  return 'Rahbari tanlang'
+  return 'Sardor tanlang'
 }
 
 // ✅ RANDOM STRING GENERATE - CREATE
@@ -594,7 +594,7 @@ onMounted(() => {
               <div class="floor-body">
                 <!-- Leader Info -->
                 <div class="floor-info-item">
-                  <span class="floor-label">Qavat rahbari:</span>
+                  <span class="floor-label">Qavat sardori:</span>
                   <span class="floor-value">
       <span v-if="floor.leaderFirstName || floor.leaderLastName">
         {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
@@ -669,7 +669,7 @@ onMounted(() => {
 
           <!-- Leader Tanlash -->
           <div class="form-group">
-            <label>Qavat Rahbari</label>
+            <label>Qavat Sardori</label>
             <div class="leader-selector">
               <button
                   @click="openLeaderModalForCreate"
@@ -763,7 +763,7 @@ onMounted(() => {
 
           <!-- Leader Tanlash -->
           <div class="form-group">
-            <label>Qavat Rahbari</label>
+            <label>Qavat Sardori</label>
             <div class="leader-selector">
               <button
                   @click="openLeaderModalForEdit"
@@ -837,7 +837,7 @@ onMounted(() => {
     <div v-if="showLeaderModal" class="modal-overlay" @click.self="showLeaderModal = false">
       <div class="modal leader-modal">
         <div class="modal-header">
-          <h2>👤 Rahbarni Tanlang</h2>
+          <h2>👤 Sardor Tanlang</h2>
           <button @click="showLeaderModal = false" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -848,7 +848,7 @@ onMounted(() => {
                 v-if="!editForm.id"
                 v-model="leaderSearchQuery"
                 type="text"
-                placeholder="Rahbari qidirish (ism, familiya yoki telefon)"
+                placeholder="Sardorni qidirish (ism, familiya yoki telefon)"
                 class="form-input"
                 @keyup="searchLeaders()"
             />
@@ -858,7 +858,7 @@ onMounted(() => {
                 v-else
                 v-model="editLeaderSearchQuery"
                 type="text"
-                placeholder="Rahbari qidirish (ism, familiya yoki telefon)"
+                placeholder="Sardorni qidirish (ism, familiya yoki telefon)"
                 class="form-input"
                 @keyup="searchEditLeaders()"
             />
