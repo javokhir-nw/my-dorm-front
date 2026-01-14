@@ -20,20 +20,32 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showSuccessModal = ref(false)
+const showLeaderModal = ref(false)
 
 // Form data
 const createForm = ref({
   name: '',
   dormId: dormitoryId,
-  randomString: ''
+  leaderId: null
 })
 
 const editForm = ref({
   id: 0,
   name: '',
   dormId: dormitoryId,
+  leaderId: null,
   randomString: ''
 })
+
+// Leaders dropdown
+const leaders = ref([])
+const loadingLeaders = ref(false)
+const leaderSearchQuery = ref('')
+
+// Edit modal uchun alohida
+const editLeaderSearchQuery = ref('')
+const editModalLeaders = ref([])
+const editLoadingLeaders = ref(false)
 
 const deleteId = ref(null)
 
@@ -48,7 +60,6 @@ const modalMessage = ref({
 const createLoading = ref(false)
 const editLoading = ref(false)
 const deleteLoading = ref(false)
-const generatingRandomString = ref(false)
 
 // Form validation error
 const formError = ref('')
@@ -99,39 +110,133 @@ function closeSuccessModal() {
   showSuccessModal.value = false
 }
 
-// ✅ YO'ZGARTIRILDI - Random String Generate Qilish
-async function generateRandomString(isEdit = false) {
-  generatingRandomString.value = true
+// ✅ YO'ZGARTIRILDI - Leaders Fetch Qilish (Create Modal)
+async function fetchLeaders(searchQuery = '') {
+  loadingLeaders.value = true
 
   try {
-    const response = await axios.get('/api/util/generate-random-string')
-    const randomString = response.data // Backend "string" ko'rinishida qaytaradi
+    const response = await axios.post('/api/user/list', {
+      page: 0,
+      size: 100,
+      search: {
+        value: searchQuery || '',
+        floorId: 0
+      }
+    })
 
-    if (isEdit) {
-      editForm.value.randomString = randomString
-    } else {
-      createForm.value.randomString = randomString
-    }
+    leaders.value = response.data.list || []
   } catch (err) {
-    console.error('Random string generate error:', err)
-    showErrorMessage('Xatolik!', 'Random string yaratishda xatolik yuz berdi')
+    console.error('Leaders fetch error:', err)
+    leaders.value = []
   } finally {
-    generatingRandomString.value = false
+    loadingLeaders.value = false
   }
 }
 
+// ✅ YO'ZGARTIRILDI - Leaders Fetch Qilish (Edit Modal)
+async function fetchEditModalLeaders(searchQuery = '') {
+  editLoadingLeaders.value = true
+
+  try {
+    const response = await axios.post('/api/user/list', {
+      page: 0,
+      size: 100,
+      search: {
+        value: searchQuery || '',
+        floorId: 0
+      }
+    })
+
+    editModalLeaders.value = response.data.list || []
+  } catch (err) {
+    console.error('Edit leaders fetch error:', err)
+    editModalLeaders.value = []
+  } finally {
+    editLoadingLeaders.value = false
+  }
+}
+
+// ✅ YO'ZGARTIRILDI - Leader Tanlash (Create Modal)
+function selectLeader(user) {
+  createForm.value.leaderId = user.id
+  showLeaderModal.value = false
+  leaderSearchQuery.value = ''
+  leaders.value = []
+}
+
+// ✅ YO'ZGARTIRILDI - Leader Tanlash (Edit Modal)
+function selectEditLeader(user) {
+  editForm.value.leaderId = user.id
+  showLeaderModal.value = false
+  editLeaderSearchQuery.value = ''
+  editModalLeaders.value = []
+}
+
+// ✅ YO'ZGARTIRILDI - Leader Modal Ochish (Create)
+async function openLeaderModalForCreate() {
+  showLeaderModal.value = true
+  leaderSearchQuery.value = ''
+  await fetchLeaders()
+}
+
+// ✅ YO'ZGARTIRILDI - Leader Modal Ochish (Edit)
+async function openLeaderModalForEdit() {
+  showLeaderModal.value = true
+  editLeaderSearchQuery.value = ''
+  await fetchEditModalLeaders()
+}
+
+// ✅ YO'ZGARTIRILDI - Search Leaders (Create Modal)
+async function searchLeaders() {
+  await fetchLeaders(leaderSearchQuery.value)
+}
+
+// ✅ YO'ZGARTIRILDI - Search Leaders (Edit Modal)
+async function searchEditLeaders() {
+  await fetchEditModalLeaders(editLeaderSearchQuery.value)
+}
+
+// ✅ YO'ZGARTIRILDI - Clear Leader (Create Modal)
+function clearLeader() {
+  createForm.value.leaderId = null
+}
+
+// ✅ YO'ZGARTIRILDI - Clear Leader (Edit Modal)
+function clearEditLeader() {
+  editForm.value.leaderId = null
+}
+
+// Get selected leader name (Create Modal)
+function getSelectedLeaderName() {
+  if (!createForm.value.leaderId) return 'Rahbari tanlang'
+
+  const leader = leaders.value.find(u => u.id === createForm.value.leaderId)
+  if (leader) {
+    return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
+  }
+  return 'Rahbari tanlang'
+}
+
+// Get selected leader name (Edit Modal)
+function getSelectedEditLeaderName() {
+  if (!editForm.value.leaderId) return 'Rahbari tanlang'
+
+  const leader = editModalLeaders.value.find(u => u.id === editForm.value.leaderId)
+  if (leader) {
+    return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
+  }
+  return 'Rahbari tanlang'
+}
+
 // Create Floor
-async function openCreateModal() {
+function openCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    randomString: ''
+    leaderId: null
   }
   formError.value = ''
   showCreateModal.value = true
-
-  // Avtomatik random string generate qilish
-  await generateRandomString(false)
 }
 
 function closeCreateModal() {
@@ -139,22 +244,18 @@ function closeCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    randomString: ''
+    leaderId: null
   }
   formError.value = ''
+  showLeaderModal.value = false
 }
 
-// ✅ YO'ZGARTIRILDI - Random String bilan Create
+// ✅ YO'ZGARTIRILDI - Create Floor bilan leaderId
 async function createFloor() {
   formError.value = ''
 
   if (!createForm.value.name.trim()) {
     formError.value = 'Iltimos, qavat nomini kiriting!'
-    return
-  }
-
-  if (!createForm.value.randomString.trim()) {
-    formError.value = 'Iltimos, random string generate qiling!'
     return
   }
 
@@ -164,7 +265,7 @@ async function createFloor() {
     const response = await axios.post('/api/floor/create', {
       name: createForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      randomString: createForm.value.randomString.trim()
+      leaderId: createForm.value.leaderId // ✅ leaderId yuborish
     })
 
     closeCreateModal()
@@ -178,11 +279,12 @@ async function createFloor() {
 }
 
 // Edit Floor
-async function openEditModal(floor) {
+function openEditModal(floor) {
   editForm.value = {
     id: floor.id,
     name: floor.name,
     dormId: dormitoryId,
+    leaderId: floor.leaderId || null,
     randomString: floor.randomString || ''
   }
   formError.value = ''
@@ -195,12 +297,14 @@ function closeEditModal() {
     id: 0,
     name: '',
     dormId: dormitoryId,
+    leaderId: null,
     randomString: ''
   }
   formError.value = ''
+  showLeaderModal.value = false
 }
 
-// ✅ YO'ZGARTIRILDI - Random String bilan Update
+// ✅ YO'ZGARTIRILDI - Update Floor bilan leaderId
 async function updateFloor() {
   formError.value = ''
 
@@ -216,7 +320,8 @@ async function updateFloor() {
       id: editForm.value.id,
       name: editForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      randomString: editForm.value.randomString.trim()
+      leaderId: editForm.value.leaderId, // ✅ leaderId yuborish
+      randomString: editForm.value.randomString
     })
 
     closeEditModal()
@@ -257,7 +362,7 @@ async function deleteFloor() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - Telegram Link Copy Qilish
+// Telegram Link Copy
 function copyTelegramLink(randomString) {
   const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
 
@@ -286,21 +391,17 @@ onMounted(() => {
     </div>
 
     <div class="page-content">
-      <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Yuklanmoqda...</p>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="error-card">
         <p>{{ error }}</p>
         <button @click="fetchDormitoryDetail" class="btn-retry">Qayta urinish</button>
       </div>
 
-      <!-- Dormitory Detail -->
       <div v-else-if="dormitory" class="detail-content">
-        <!-- Main Info Card -->
         <div class="info-card">
           <div class="info-header">
             <div class="info-icon">🏢</div>
@@ -325,7 +426,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Floors List -->
         <div class="floors-section">
           <div class="floors-header">
             <h3>Qavatlar</h3>
@@ -343,17 +443,16 @@ onMounted(() => {
               </div>
 
               <div class="floor-body">
-                <div class="floor-info-item" v-if="floor.leaderFirstName || floor.leaderLastName">
+                <!-- ✅ YO'ZGARTIRILDI - Leader Info (lastname firstname middlename tartibida) -->
+                <div class="floor-info-item">
                   <span class="floor-label">Qavat rahbari:</span>
                   <span class="floor-value">
-                    {{ floor.leaderFirstName }} {{ floor.leaderLastName }}
-                    <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
+                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
+                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
+                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
+                    </span>
+                    <span v-else class="no-data">Tayinlanmagan</span>
                   </span>
-                </div>
-
-                <div class="floor-info-item" v-else>
-                  <span class="floor-label">Qavat rahbari:</span>
-                  <span class="floor-value no-data">Tayinlanmagan</span>
                 </div>
 
                 <div class="floor-info-item" v-if="floor.rooms !== null">
@@ -361,7 +460,6 @@ onMounted(() => {
                   <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
                 </div>
 
-                <!-- ✅ YO'ZGARTIRILDI - Telegram Link va Copy Button -->
                 <div class="floor-info-item" v-if="floor.randomString">
                   <span class="floor-label">Taklif havolasi:</span>
                   <div class="telegram-link-container">
@@ -371,7 +469,6 @@ onMounted(() => {
                     <button
                         @click="copyTelegramLink(floor.randomString)"
                         class="btn-copy-link"
-                        title="Havolani nusxalash"
                     >
                       📋 Nusxalash
                     </button>
@@ -418,29 +515,25 @@ onMounted(() => {
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
 
-          <!-- ✅ YO'ZGARTIRILDI - Random String Section -->
+          <!-- ✅ YO'ZGARTIRILDI - Leader Tanlash -->
           <div class="form-group">
-            <label>Qavat Identifikatori (Random String) *</label>
-            <div class="random-string-container">
-              <input
-                  v-model="createForm.randomString"
-                  type="text"
-                  placeholder="Random string avtomatik yaratiladi"
-                  class="form-input"
-                  readonly
-                  @click="$event.target.select()"
-              />
+            <label>Qavat Rahbari</label>
+            <div class="leader-selector">
               <button
-                  @click="generateRandomString(false)"
-                  class="btn-regenerate"
-                  :disabled="generatingRandomString"
-                  title="Yangi random string yaratish"
+                  @click="openLeaderModalForCreate"
+                  class="btn-select-leader"
               >
-                <span v-if="generatingRandomString">⏳</span>
-                <span v-else>🔄 Qayta yaratish</span>
+                👤 {{ getSelectedLeaderName() }}
+              </button>
+              <button
+                  v-if="createForm.leaderId"
+                  @click="clearLeader"
+                  class="btn-clear-leader"
+                  title="Rahbari o'chirish"
+              >
+                ✕
               </button>
             </div>
-            <p class="help-text">Bu string qavat uchun noyob identifikator bo'lib xizmat qiladi</p>
           </div>
         </div>
         <div class="modal-footer">
@@ -477,29 +570,25 @@ onMounted(() => {
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
 
-          <!-- ✅ YO'ZGARTIRILDI - Random String Display in Edit -->
+          <!-- ✅ YO'ZGARTIRILDI - Leader Tanlash (Edit Modal) -->
           <div class="form-group">
-            <label>Qavat Identifikatori</label>
-            <div class="random-string-container">
-              <input
-                  v-model="editForm.randomString"
-                  type="text"
-                  placeholder="Random string"
-                  class="form-input"
-                  readonly
-                  @click="$event.target.select()"
-              />
+            <label>Qavat Rahbari</label>
+            <div class="leader-selector">
               <button
-                  @click="generateRandomString(true)"
-                  class="btn-regenerate"
-                  :disabled="generatingRandomString"
-                  title="Yangi random string yaratish"
+                  @click="openLeaderModalForEdit"
+                  class="btn-select-leader"
               >
-                <span v-if="generatingRandomString">⏳</span>
-                <span v-else>🔄 Qayta yaratish</span>
+                👤 {{ getSelectedEditLeaderName() }}
+              </button>
+              <button
+                  v-if="editForm.leaderId"
+                  @click="clearEditLeader"
+                  class="btn-clear-leader"
+                  title="Rahbari o'chirish"
+              >
+                ✕
               </button>
             </div>
-            <p class="help-text">Kerakli bo'lsa yangi random string yaratishingiz mumkin</p>
           </div>
         </div>
         <div class="modal-footer">
@@ -510,6 +599,61 @@ onMounted(() => {
             <span v-if="editLoading">Saqlanmoqda...</span>
             <span v-else>Saqlash</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ YO'ZGARTIRILDI - Leader Tanlash Modal -->
+    <div v-if="showLeaderModal" class="modal-overlay" @click.self="showLeaderModal = false">
+      <div class="modal leader-modal">
+        <div class="modal-header">
+          <h2>👤 Rahbarni Tanlang</h2>
+          <button @click="showLeaderModal = false" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Search Input -->
+          <div class="leader-search">
+            <input
+                v-model="editForm.leaderId ? editLeaderSearchQuery : leaderSearchQuery"
+                type="text"
+                placeholder="Rahbari qidirish (ism, familiya yoki telefon)"
+                class="form-input"
+                @keyup="editForm.leaderId ? searchEditLeaders() : searchLeaders()"
+            />
+            <button
+                @click="editForm.leaderId ? searchEditLeaders() : searchLeaders()"
+                class="btn-search"
+                :disabled="editForm.leaderId ? editLoadingLeaders : loadingLeaders"
+            >
+              🔍
+            </button>
+          </div>
+
+          <!-- Leaders List -->
+          <div class="leaders-list">
+            <div v-if="editForm.leaderId ? editLoadingLeaders : loadingLeaders" class="loading-text">
+              Yuklanmoqda...
+            </div>
+
+            <div v-else-if="(editForm.leaderId ? editModalLeaders : leaders).length === 0" class="empty-leaders">
+              Foydalanuvchilar topilmadi
+            </div>
+
+            <div
+                v-for="user in (editForm.leaderId ? editModalLeaders : leaders)"
+                :key="user.id"
+                class="leader-item"
+                @click="editForm.leaderId ? selectEditLeader(user) : selectLeader(user)"
+            >
+              <div class="leader-info">
+                <span class="leader-name">
+                  {{ user.lastName }} {{ user.firstName }}
+                  <span v-if="user.middleName">{{ user.middleName }}</span>
+                </span>
+                <span class="leader-phone" v-if="user.phone">{{ user.phone }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -627,7 +771,6 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* Loading */
 .loading-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -650,7 +793,6 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-/* Error */
 .error-card {
   background: white;
   padding: 2rem;
@@ -677,14 +819,12 @@ onMounted(() => {
   background: #5568d3;
 }
 
-/* Detail Content */
 .detail-content {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-/* Info Card */
 .info-card {
   background: white;
   border-radius: 12px;
@@ -735,7 +875,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* Floors Section */
 .floors-section {
   background: white;
   padding: 2rem;
@@ -825,7 +964,6 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* ✅ YO'ZGARTIRILDI - Telegram Link Styles */
 .telegram-link-container {
   display: flex;
   gap: 0.5rem;
@@ -915,7 +1053,6 @@ onMounted(() => {
   background: #dc2626;
 }
 
-/* Empty State */
 .empty-floors {
   text-align: center;
   padding: 3rem 2rem;
@@ -946,7 +1083,6 @@ onMounted(() => {
   background: #059669;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -966,6 +1102,13 @@ onMounted(() => {
   width: 90%;
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.leader-modal {
+  max-width: 600px;
 }
 
 .modal-small {
@@ -982,6 +1125,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -1005,6 +1149,8 @@ onMounted(() => {
 
 .modal-body {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .form-group {
@@ -1025,7 +1171,6 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
-  font-family: monospace;
 }
 
 .form-input:focus {
@@ -1037,23 +1182,65 @@ onMounted(() => {
   border-color: #ef4444;
 }
 
-.form-input[readonly] {
-  background: #f5f5f5;
-  cursor: text;
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
 }
 
-/* ✅ YO'ZGARTIRILDI - Random String Container */
-.random-string-container {
+/* ✅ YO'ZGARTIRILDI - Leader Selector Styles */
+.leader-selector {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
 
-.random-string-container .form-input {
+.btn-select-leader {
+  flex: 1;
+  padding: 0.75rem;
+  background: #f0f0f0;
+  color: #333;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.3s;
+}
+
+.btn-select-leader:hover {
+  background: #e0e0e0;
+  border-color: #667eea;
+}
+
+.btn-clear-leader {
+  padding: 0.75rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-clear-leader:hover {
+  background: #dc2626;
+}
+
+/* ✅ YO'ZGARTIRILDI - Leader Search Modal */
+.leader-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.leader-search .form-input {
   flex: 1;
 }
 
-.btn-regenerate {
+.btn-search {
   padding: 0.75rem 1rem;
   background: #667eea;
   color: white;
@@ -1062,31 +1249,65 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  white-space: nowrap;
-  font-size: 0.9rem;
 }
 
-.btn-regenerate:hover:not(:disabled) {
+.btn-search:hover:not(:disabled) {
   background: #5568d3;
 }
 
-.btn-regenerate:disabled {
+.btn-search:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.help-text {
-  font-size: 0.85rem;
-  color: #999;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
+.leaders-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
 }
 
-.error-message {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
+.loading-text {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+}
+
+.empty-leaders {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+}
+
+.leader-item {
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.leader-item:hover {
+  background: #f9f9f9;
+}
+
+.leader-item:last-child {
+  border-bottom: none;
+}
+
+.leader-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.leader-name {
+  color: #333;
+  font-weight: 600;
+}
+
+.leader-phone {
+  font-size: 0.85rem;
+  color: #999;
 }
 
 .delete-warning {
@@ -1102,6 +1323,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .btn-cancel {
@@ -1164,7 +1386,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Success/Error Message Modal */
 .message-body {
   text-align: center;
   padding: 2rem 1.5rem;
@@ -1265,14 +1486,6 @@ onMounted(() => {
   .modal {
     width: 95%;
     margin: 1rem;
-  }
-
-  .random-string-container {
-    flex-direction: column;
-  }
-
-  .btn-regenerate {
-    width: 100%;
   }
 
   .telegram-link-container {
