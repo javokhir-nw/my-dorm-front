@@ -478,17 +478,32 @@ onMounted(() => {
 
               <div class="floor-body">
                 <!-- ✅ YO'ZGARTIRILDI - Leader Info (lastname firstname middlename tartibida) -->
-                <div class="floor-info-item">
-                  <span class="floor-label">Qavat rahbari:</span>
-                  <span class="floor-value">
-                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
-                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
-                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
-                    </span>
-                    <span v-else class="no-data">Tayinlanmagan</span>
-                  </span>
-                </div>
 
+<div class="floor-info-item" v-if="floor.randomString">
+  <span class="floor-label">Taklif havolasi:</span>
+  <div class="telegram-link-container">
+    <span class="telegram-link">
+      https://t.me/nlw_support_bot?start={{ floor.randomString }}
+    </span>
+    <div class="link-buttons">
+      <button 
+        @click="copyTelegramLink(floor.randomString)" 
+        class="btn-copy-link"
+        title="Havolani nusxalash"
+      >
+        📋 Nusxalash
+      </button>
+      <button 
+        @click="shareTelegramLink(floor.randomString)" 
+        class="btn-share-link"
+        title="Havolani ulashish"
+      >
+        📤 Ulashish
+      </button>
+    </div>
+  </div>
+</div>
+                
                 <div class="floor-info-item" v-if="floor.rooms !== null">
                   <span class="floor-label">Xonalar:</span>
                   <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
@@ -1228,6 +1243,83 @@ onMounted(() => {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+
+  .telegram-link-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.telegram-link {
+  background: #f0f0f0;
+  color: #333;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  word-break: break-all;
+  flex: 1;
+  font-family: monospace;
+  min-width: 200px;
+}
+
+.link-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-copy-link {
+  padding: 0.5rem 0.75rem;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.btn-copy-link:hover {
+  background: #0284c7;
+}
+
+.btn-share-link {
+  padding: 0.5rem 0.75rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: all 0.3s;
+  display: none;
+}
+
+/* Share button faqat mobile-da ko'rinadi */
+@media (max-width: 768px) {
+  .btn-share-link {
+    display: block;
+  }
+  
+  .telegram-link-container {
+    flex-direction: column;
+  }
+  
+  .telegram-link {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+.btn-share-link:hover {
+  background: #059669;
 }
 
 .btn-select-leader {
