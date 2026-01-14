@@ -26,7 +26,8 @@ const showLeaderModal = ref(false)
 const createForm = ref({
   name: '',
   dormId: dormitoryId,
-  leaderId: null
+  leaderId: null,
+  randomString: ''
 })
 
 const editForm = ref({
@@ -47,9 +48,6 @@ const editLeaderSearchQuery = ref('')
 const editModalLeaders = ref([])
 const editLoadingLeaders = ref(false)
 
-// Modal context (determines which modal is using the leader selector)
-const leaderModalContext = ref('create') // 'create' or 'edit'
-
 const deleteId = ref(null)
 
 // Success/Error message
@@ -63,6 +61,7 @@ const modalMessage = ref({
 const createLoading = ref(false)
 const editLoading = ref(false)
 const deleteLoading = ref(false)
+const generatingRandomString = ref(false)
 
 // Form validation error
 const formError = ref('')
@@ -177,15 +176,14 @@ function selectEditLeader(user) {
 
 // ✅ Leader Modal Ochish (Create)
 async function openLeaderModalForCreate() {
-  leaderModalContext.value = 'create'
   showLeaderModal.value = true
   leaderSearchQuery.value = ''
+  createForm.value.leaderId = null
   await fetchLeaders()
 }
 
 // ✅ Leader Modal Ochish (Edit)
 async function openLeaderModalForEdit() {
-  leaderModalContext.value = 'edit'
   showLeaderModal.value = true
   editLeaderSearchQuery.value = ''
   await fetchEditModalLeaders()
@@ -233,12 +231,103 @@ function getSelectedEditLeaderName() {
   return 'Rahbari tanlang'
 }
 
+// ✅ RANDOM STRING GENERATE - CREATE
+async function generateRandomStringForCreate() {
+  generatingRandomString.value = true
+
+  try {
+    const response = await axios.get('/api/util/generate-random-string')
+    const randomString = response.data
+
+    createForm.value.randomString = randomString
+  } catch (err) {
+    console.error('Random string generate error:', err)
+    showErrorMessage('Xatolik!', 'Random string yaratishda xatolik yuz berdi')
+  } finally {
+    generatingRandomString.value = false
+  }
+}
+
+// ✅ RANDOM STRING GENERATE - EDIT
+async function generateRandomStringForEdit() {
+  generatingRandomString.value = true
+
+  try {
+    const response = await axios.get('/api/util/generate-random-string')
+    const randomString = response.data
+
+    editForm.value.randomString = randomString
+  } catch (err) {
+    console.error('Random string generate error:', err)
+    showErrorMessage('Xatolik!', 'Random string yaratishda xatolik yuz berdi')
+  } finally {
+    generatingRandomString.value = false
+  }
+}
+
+// ✅ COPY CREATE LINK
+function copyCreateLink() {
+  const link = `https://t.me/nlw_support_bot?start=${createForm.value.randomString}`
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        showSuccessMessage('Muvaffaqiyatli!', 'Havolasi nusxalandi')
+      })
+    } else {
+      copyToClipboardFallback(link)
+    }
+  } catch (err) {
+    copyToClipboardFallback(link)
+  }
+}
+
+// ✅ COPY EDIT LINK
+function copyEditLink() {
+  const link = `https://t.me/nlw_support_bot?start=${editForm.value.randomString}`
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        showSuccessMessage('Muvaffaqiyatli!', 'Havolasi nusxalandi')
+      })
+    } else {
+      copyToClipboardFallback(link)
+    }
+  } catch (err) {
+    copyToClipboardFallback(link)
+  }
+}
+
+// Fallback copy
+function copyToClipboardFallback(text) {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-999999px'
+  document.body.appendChild(textArea)
+
+  try {
+    textArea.select()
+    const successful = document.execCommand('copy')
+
+    if (successful) {
+      showSuccessMessage('Muvaffaqiyatli!', 'Havolasi nusxalandi')
+    }
+  } catch (err) {
+    showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
+  } finally {
+    document.body.removeChild(textArea)
+  }
+}
+
 // Create Floor
 function openCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    leaderId: null
+    leaderId: null,
+    randomString: ''
   }
   formError.value = ''
   showCreateModal.value = true
@@ -249,18 +338,24 @@ function closeCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    leaderId: null
+    leaderId: null,
+    randomString: ''
   }
   formError.value = ''
   showLeaderModal.value = false
 }
 
-// ✅ Create Floor bilan leaderId
+// ✅ Create Floor bilan leaderId va randomString
 async function createFloor() {
   formError.value = ''
 
   if (!createForm.value.name.trim()) {
     formError.value = 'Iltimos, qavat nomini kiriting!'
+    return
+  }
+
+  if (!createForm.value.randomString.trim()) {
+    formError.value = 'Iltimos, havolani yarating!'
     return
   }
 
@@ -270,7 +365,8 @@ async function createFloor() {
     const response = await axios.post('/api/floor/create', {
       name: createForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      leaderId: createForm.value.leaderId
+      leaderId: createForm.value.leaderId,
+      randomString: createForm.value.randomString.trim()
     })
 
     closeCreateModal()
@@ -309,7 +405,7 @@ function closeEditModal() {
   showLeaderModal.value = false
 }
 
-// ✅ Update Floor bilan leaderId
+// ✅ Update Floor bilan leaderId va randomString
 async function updateFloor() {
   formError.value = ''
 
@@ -367,71 +463,20 @@ async function deleteFloor() {
   }
 }
 
-// Telegram Link Copy
-async function copyTelegramLink(randomString) {
+// Telegram Link Copy (Floor List)
+function copyTelegramLink(randomString) {
   const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
 
   try {
-    // Modern browsers uchun
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(telegramLink)
-      showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+      navigator.clipboard.writeText(telegramLink).then(() => {
+        showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
+      })
     } else {
-      // Older browsers va mobile uchun fallback
       copyToClipboardFallback(telegramLink)
     }
   } catch (err) {
-    console.error('Copy error:', err)
-    // Agar clipboard fail bo'lsa fallback
     copyToClipboardFallback(telegramLink)
-  }
-}
-
-// Telegram Link Share (Web Share API)
-async function shareTelegramLink(randomString) {
-  const telegramLink = `https://t.me/nlw_support_bot?start=${randomString}`
-
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: 'Qavat Taklifi',
-        text: 'Bu qavatga qo\'shilish uchun havolani bosing',
-        url: telegramLink
-      })
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Share error:', err)
-        showErrorMessage('Xatolik!', 'Ulashishda xatolik yuz berdi')
-      }
-    }
-  } else {
-    // Fallback: copy to clipboard agar Web Share API mavjud bo'lmasa
-    copyTelegramLink(randomString)
-  }
-}
-
-// Fallback method - barcha devicelarda ishlaydi
-function copyToClipboardFallback(text) {
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  textArea.style.position = 'fixed'
-  textArea.style.left = '-999999px'
-  textArea.style.top = '-999999px'
-  document.body.appendChild(textArea)
-
-  try {
-    textArea.select()
-    const successful = document.execCommand('copy')
-
-    if (successful) {
-      showSuccessMessage('Muvaffaqiyatli!', 'Telegram havolasi nusxalandi')
-    } else {
-      showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
-    }
-  } catch (err) {
-    showErrorMessage('Xatolik!', 'Nusxalashda xatolik yuz berdi')
-  } finally {
-    document.body.removeChild(textArea)
   }
 }
 
@@ -446,24 +491,28 @@ onMounted(() => {
 
     <div class="page-header">
       <div class="header-left">
-        <button @click="goBack" class="back-button" aria-label="Orqaga qaytish">← Orqaga</button>
+        <button @click="goBack" class="back-button">← Orqaga</button>
         <h1>🏢 Yotoqxona ma'lumotlari</h1>
       </div>
       <button v-if="dormitory" @click="openCreateModal" class="btn-create">+ Qavat qo'shish</button>
     </div>
 
     <div class="page-content">
+      <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Yuklanmoqda...</p>
       </div>
 
+      <!-- Error -->
       <div v-else-if="error" class="error-card">
         <p>{{ error }}</p>
         <button @click="fetchDormitoryDetail" class="btn-retry">Qayta urinish</button>
       </div>
 
+      <!-- Dormitory Detail -->
       <div v-else-if="dormitory" class="detail-content">
+        <!-- Main Info Card -->
         <div class="info-card">
           <div class="info-header">
             <div class="info-icon">🏢</div>
@@ -488,6 +537,7 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Floors List -->
         <div class="floors-section">
           <div class="floors-header">
             <h3>Qavatlar</h3>
@@ -505,63 +555,45 @@ onMounted(() => {
               </div>
 
               <div class="floor-body">
-                <!-- Telegram Link Section -->
+                <!-- Leader Info -->
+                <div class="floor-info-item">
+                  <span class="floor-label">Qavat rahbari:</span>
+                  <span class="floor-value">
+                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
+                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
+                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
+                    </span>
+                    <span v-else class="no-data">Tayinlanmagan</span>
+                  </span>
+                </div>
+
+                <!-- Rooms Count -->
+                <div class="floor-info-item" v-if="floor.rooms !== null">
+                  <span class="floor-label">Xonalar:</span>
+                  <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
+                </div>
+
+                <!-- Telegram Link -->
                 <div class="floor-info-item" v-if="floor.randomString">
                   <span class="floor-label">Taklif havolasi:</span>
                   <div class="telegram-link-container">
                     <span class="telegram-link">
                       https://t.me/nlw_support_bot?start={{ floor.randomString }}
                     </span>
-                    <div class="link-buttons">
-                      <button
-                          @click="copyTelegramLink(floor.randomString)"
-                          class="btn-copy-link"
-                          aria-label="Havolani nusxalash"
-                          title="Havolani nusxalash"
-                      >
-                        📋 Nusxalash
-                      </button>
-                      <button
-                          @click="shareTelegramLink(floor.randomString)"
-                          class="btn-share-link"
-                          aria-label="Havolani ulashish"
-                          title="Havolani ulashish"
-                      >
-                        📤 Ulashish
-                      </button>
-                    </div>
+                    <button
+                        @click="copyTelegramLink(floor.randomString)"
+                        class="btn-copy-link"
+                    >
+                      📋 Nusxalash
+                    </button>
                   </div>
-                </div>
-
-                <!-- Rooms Count Section -->
-                <div class="floor-info-item" v-if="floor.rooms !== null">
-                  <span class="floor-label">Xonalar:</span>
-                  <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
-                </div>
-
-                <!-- Leader Info Section -->
-                <div class="floor-info-item" v-if="floor.leaderId">
-                  <span class="floor-label">Qavat Rahbari:</span>
-                  <span class="floor-value">{{ floor.leaderName || 'Belgilanmagan' }}</span>
                 </div>
               </div>
 
               <div class="floor-footer">
                 <button @click="viewFloor(floor.id)" class="btn-view-floor">Ko'rish →</button>
-                <button
-                    @click.stop="openEditModal(floor)"
-                    class="btn-edit-floor"
-                    aria-label="Qavatni tahrirlash"
-                >
-                  ✏️
-                </button>
-                <button
-                    @click.stop="openDeleteModal(floor.id)"
-                    class="btn-delete-floor"
-                    aria-label="Qavatni o'chirish"
-                >
-                  🗑️
-                </button>
+                <button @click.stop="openEditModal(floor)" class="btn-edit-floor">✏️</button>
+                <button @click.stop="openDeleteModal(floor.id)" class="btn-delete-floor">🗑️</button>
               </div>
             </div>
           </div>
@@ -575,39 +607,35 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Create Modal -->
+    <!-- ========== CREATE MODAL ========== -->
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal">
         <div class="modal-header">
           <h2>🏢 Yangi Qavat Qo'shish</h2>
-          <button @click="closeCreateModal" class="modal-close" aria-label="Modalni yopish">✕</button>
+          <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
+          <!-- Qavat Nomi -->
           <div class="form-group">
-            <label for="create-floor-name">Qavat nomi *</label>
+            <label>Qavat nomi *</label>
             <input
-                id="create-floor-name"
                 v-model="createForm.name"
                 type="text"
                 placeholder="Qavat nomini kiriting (masalan: 1-qavat)"
                 class="form-input"
                 :class="{ 'input-error': formError }"
-                @keyup.enter="createFloor"
                 @input="formError = ''"
-                aria-label="Qavat nomi"
             />
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
 
-          <!-- Leader Selection -->
+          <!-- Leader Tanlash -->
           <div class="form-group">
-            <label for="create-leader-select">Qavat Rahbari</label>
+            <label>Qavat Rahbari</label>
             <div class="leader-selector">
               <button
-                  id="create-leader-select"
                   @click="openLeaderModalForCreate"
                   class="btn-select-leader"
-                  aria-label="Rahbarni tanlang"
               >
                 👤 {{ getSelectedLeaderName() }}
               </button>
@@ -615,19 +643,57 @@ onMounted(() => {
                   v-if="createForm.leaderId"
                   @click="clearLeader"
                   class="btn-clear-leader"
-                  aria-label="Rahbari o'chirish"
-                  title="Rahbari o'chirish"
               >
                 ✕
               </button>
             </div>
           </div>
+
+          <!-- Qavat Havolasi -->
+          <div class="form-group">
+            <label>Qavat Taklif Havolasi *</label>
+            <div class="random-string-container">
+              <input
+                  v-model="createForm.randomString"
+                  type="text"
+                  placeholder="Random string avtomatik yaratiladi"
+                  class="form-input"
+                  readonly
+                  @click="$event.target.select()"
+              />
+              <button
+                  @click="generateRandomStringForCreate"
+                  class="btn-regenerate"
+                  :disabled="generatingRandomString"
+              >
+                <span v-if="generatingRandomString">⏳</span>
+                <span v-else>🔄 Yaratish</span>
+              </button>
+            </div>
+
+            <!-- Generated Link Preview -->
+            <div v-if="createForm.randomString" class="link-preview">
+              <span class="preview-label">Taklif havolasi:</span>
+              <div class="telegram-link-preview">
+                <span class="link-text">
+                  https://t.me/nlw_support_bot?start={{ createForm.randomString }}
+                </span>
+                <button
+                    @click="copyCreateLink"
+                    class="btn-copy-preview"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+
         <div class="modal-footer">
           <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
             Bekor qilish
           </button>
-          <button @click="createFloor" class="btn-submit" :disabled="createLoading">
+          <button @click="createFloor" class="btn-submit" :disabled="createLoading || !createForm.randomString">
             <span v-if="createLoading">Saqlanmoqda...</span>
             <span v-else>Saqlash</span>
           </button>
@@ -635,39 +701,35 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- ========== EDIT MODAL ========== -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal">
         <div class="modal-header">
           <h2>✏️ Qavatni Tahrirlash</h2>
-          <button @click="closeEditModal" class="modal-close" aria-label="Modalni yopish">✕</button>
+          <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
+          <!-- Qavat Nomi -->
           <div class="form-group">
-            <label for="edit-floor-name">Qavat nomi *</label>
+            <label>Qavat nomi *</label>
             <input
-                id="edit-floor-name"
                 v-model="editForm.name"
                 type="text"
                 placeholder="Qavat nomini kiriting"
                 class="form-input"
                 :class="{ 'input-error': formError }"
-                @keyup.enter="updateFloor"
                 @input="formError = ''"
-                aria-label="Qavat nomi"
             />
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
 
-          <!-- Leader Selection (Edit Modal) -->
+          <!-- Leader Tanlash -->
           <div class="form-group">
-            <label for="edit-leader-select">Qavat Rahbari</label>
+            <label>Qavat Rahbari</label>
             <div class="leader-selector">
               <button
-                  id="edit-leader-select"
                   @click="openLeaderModalForEdit"
                   class="btn-select-leader"
-                  aria-label="Rahbarni tanlang"
               >
                 👤 {{ getSelectedEditLeaderName() }}
               </button>
@@ -675,14 +737,52 @@ onMounted(() => {
                   v-if="editForm.leaderId"
                   @click="clearEditLeader"
                   class="btn-clear-leader"
-                  aria-label="Rahbari o'chirish"
-                  title="Rahbari o'chirish"
               >
                 ✕
               </button>
             </div>
           </div>
+
+          <!-- Qavat Havolasi -->
+          <div class="form-group">
+            <label>Qavat Taklif Havolasi</label>
+            <div class="random-string-container">
+              <input
+                  v-model="editForm.randomString"
+                  type="text"
+                  placeholder="Random string"
+                  class="form-input"
+                  readonly
+                  @click="$event.target.select()"
+              />
+              <button
+                  @click="generateRandomStringForEdit"
+                  class="btn-regenerate"
+                  :disabled="generatingRandomString"
+              >
+                <span v-if="generatingRandomString">⏳</span>
+                <span v-else>🔄 Qayta yaratish</span>
+              </button>
+            </div>
+
+            <!-- Generated Link Preview -->
+            <div v-if="editForm.randomString" class="link-preview">
+              <span class="preview-label">Taklif havolasi:</span>
+              <div class="telegram-link-preview">
+                <span class="link-text">
+                  https://t.me/nlw_support_bot?start={{ editForm.randomString }}
+                </span>
+                <button
+                    @click="copyEditLink"
+                    class="btn-copy-preview"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+
         <div class="modal-footer">
           <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">
             Bekor qilish
@@ -695,30 +795,40 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Leader Selection Modal -->
+    <!-- ========== LEADER SELECTION MODAL ========== -->
     <div v-if="showLeaderModal" class="modal-overlay" @click.self="showLeaderModal = false">
       <div class="modal leader-modal">
         <div class="modal-header">
           <h2>👤 Rahbarni Tanlang</h2>
-          <button @click="showLeaderModal = false" class="modal-close" aria-label="Modalni yopish">✕</button>
+          <button @click="showLeaderModal = false" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
           <!-- Search Input -->
           <div class="leader-search">
+            <!-- Create Modal uchun search input -->
             <input
+                v-if="!editForm.id"
+                v-model="leaderSearchQuery"
                 type="text"
-                :value="leaderModalContext === 'create' ? leaderSearchQuery : editLeaderSearchQuery"
-                @input="leaderModalContext === 'create' ? leaderSearchQuery = $event.target.value : editLeaderSearchQuery = $event.target.value"
                 placeholder="Rahbari qidirish (ism, familiya yoki telefon)"
                 class="form-input"
-                @keyup.enter="leaderModalContext === 'create' ? searchLeaders() : searchEditLeaders()"
-                aria-label="Rahbari qidirish"
+                @keyup="searchLeaders()"
             />
+
+            <!-- Edit Modal uchun search input -->
+            <input
+                v-else
+                v-model="editLeaderSearchQuery"
+                type="text"
+                placeholder="Rahbari qidirish (ism, familiya yoki telefon)"
+                class="form-input"
+                @keyup="searchEditLeaders()"
+            />
+
             <button
-                @click="leaderModalContext === 'create' ? searchLeaders() : searchEditLeaders()"
+                @click="!editForm.id ? searchLeaders() : searchEditLeaders()"
                 class="btn-search"
-                :disabled="leaderModalContext === 'create' ? loadingLeaders : editLoadingLeaders"
-                aria-label="Qidirish"
+                :disabled="!editForm.id ? loadingLeaders : editLoadingLeaders"
             >
               🔍
             </button>
@@ -726,23 +836,22 @@ onMounted(() => {
 
           <!-- Leaders List -->
           <div class="leaders-list">
-            <div v-if="leaderModalContext === 'create' ? loadingLeaders : editLoadingLeaders" class="loading-text">
+            <!-- Loading -->
+            <div v-if="!editForm.id ? loadingLeaders : editLoadingLeaders" class="loading-text">
               Yuklanmoqda...
             </div>
 
-            <div v-else-if="(leaderModalContext === 'create' ? leaders : editModalLeaders).length === 0" class="empty-leaders">
+            <!-- Empty -->
+            <div v-else-if="(!editForm.id ? leaders : editModalLeaders).length === 0" class="empty-leaders">
               Foydalanuvchilar topilmadi
             </div>
 
+            <!-- Leaders List -->
             <div
-                v-for="user in (leaderModalContext === 'create' ? leaders : editModalLeaders)"
+                v-for="user in (!editForm.id ? leaders : editModalLeaders)"
                 :key="user.id"
                 class="leader-item"
-                @click="leaderModalContext === 'create' ? selectLeader(user) : selectEditLeader(user)"
-                :aria-label="`${user.lastName} ${user.firstName} ni tanlang`"
-                role="button"
-                tabindex="0"
-                @keydown.enter="leaderModalContext === 'create' ? selectLeader(user) : selectEditLeader(user)"
+                @click="!editForm.id ? selectLeader(user) : selectEditLeader(user)"
             >
               <div class="leader-info">
                 <span class="leader-name">
@@ -757,12 +866,12 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Delete Modal -->
+    <!-- ========== DELETE MODAL ========== -->
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
           <h2>🗑️ O'chirishni tasdiqlash</h2>
-          <button @click="closeDeleteModal" class="modal-close" aria-label="Modalni yopish">✕</button>
+          <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
           <p class="delete-warning">
@@ -783,7 +892,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Success/Error Modal -->
+    <!-- ========== SUCCESS/ERROR MODAL ========== -->
     <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeSuccessModal">
       <div class="modal modal-message">
         <div class="modal-body message-body">
@@ -1066,9 +1175,8 @@ onMounted(() => {
 .telegram-link-container {
   display: flex;
   gap: 0.5rem;
-  align-items: flex-start;
+  align-items: center;
   margin-top: 0.5rem;
-  flex-wrap: wrap;
 }
 
 .telegram-link {
@@ -1080,16 +1188,10 @@ onMounted(() => {
   word-break: break-all;
   flex: 1;
   font-family: monospace;
-  min-width: 200px;
-}
-
-.link-buttons {
-  display: flex;
-  gap: 0.5rem;
 }
 
 .btn-copy-link {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem;
   background: #0ea5e9;
   color: white;
   border: none;
@@ -1103,40 +1205,6 @@ onMounted(() => {
 
 .btn-copy-link:hover {
   background: #0284c7;
-}
-
-.btn-share-link {
-  padding: 0.5rem 0.75rem;
-  background: #10b981;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  transition: all 0.3s;
-  display: none;
-}
-
-/* Share button faqat mobile-da ko'rinadi */
-@media (max-width: 768px) {
-  .btn-share-link {
-    display: block;
-  }
-
-  .telegram-link-container {
-    flex-direction: column;
-  }
-
-  .telegram-link {
-    width: 100%;
-    min-width: auto;
-  }
-}
-
-.btn-share-link:hover {
-  background: #059669;
 }
 
 .floor-footer {
@@ -1234,6 +1302,7 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow-y: auto;
 }
 
 .modal {
@@ -1245,6 +1314,7 @@ onMounted(() => {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  margin: auto;
 }
 
 .leader-modal {
@@ -1311,7 +1381,6 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
-  font-family: inherit;
 }
 
 .form-input:focus {
@@ -1321,6 +1390,11 @@ onMounted(() => {
 
 .form-input.input-error {
   border-color: #ef4444;
+}
+
+.form-input[readonly] {
+  background: #f5f5f5;
+  cursor: text;
 }
 
 .error-message {
@@ -1347,7 +1421,6 @@ onMounted(() => {
   font-weight: 600;
   text-align: left;
   transition: all 0.3s;
-  font-family: inherit;
 }
 
 .btn-select-leader:hover {
@@ -1370,6 +1443,89 @@ onMounted(() => {
   background: #dc2626;
 }
 
+.random-string-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.random-string-container .form-input {
+  flex: 1;
+  font-family: monospace;
+}
+
+.btn-regenerate {
+  padding: 0.75rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.btn-regenerate:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-regenerate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.preview-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.telegram-link-preview {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.link-text {
+  flex: 1;
+  font-size: 0.8rem;
+  color: #0ea5e9;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.btn-copy-preview {
+  padding: 0.5rem;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.btn-copy-preview:hover {
+  background: #0284c7;
+}
+
 .leader-search {
   display: flex;
   gap: 0.5rem;
@@ -1389,7 +1545,6 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: inherit;
 }
 
 .btn-search:hover:not(:disabled) {
@@ -1476,7 +1631,6 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: inherit;
 }
 
 .btn-cancel:hover:not(:disabled) {
@@ -1497,7 +1651,6 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: inherit;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -1518,7 +1671,6 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: inherit;
 }
 
 .btn-delete-confirm:hover:not(:disabled) {
@@ -1580,7 +1732,6 @@ onMounted(() => {
   font-size: 1rem;
   transition: all 0.3s;
   min-width: 120px;
-  font-family: inherit;
 }
 
 .btn-message-ok:hover {
@@ -1630,15 +1781,33 @@ onMounted(() => {
 
   .modal {
     width: 95%;
-    margin: 1rem;
+  }
+
+  .random-string-container {
+    flex-direction: column;
+  }
+
+  .btn-regenerate {
+    width: 100%;
   }
 
   .telegram-link-container {
     flex-direction: column;
   }
 
-  .btn-copy-link,
-  .btn-share-link {
+  .btn-copy-link {
+    width: 100%;
+  }
+
+  .link-preview {
+    margin-top: 1rem;
+  }
+
+  .telegram-link-preview {
+    flex-direction: column;
+  }
+
+  .btn-copy-preview {
     width: 100%;
   }
 }
