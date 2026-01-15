@@ -13,4 +13,8 @@
 #app {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+body {
+  padding: 0;
+  margin: 0;
+}
 </style>

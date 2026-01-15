@@ -12,8 +12,31 @@ export const useAuthStore = defineStore('auth', () => {
     const roleIds = ref(JSON.parse(localStorage.getItem('roleIds') || '[]'))
     const permissionIds = ref(JSON.parse(localStorage.getItem('permissionIds') || '[]'))
 
-    const isAuthenticated = computed(() => !!token.value)
+    const isAuthenticated = computed(() => !!token.value && !isTokenExpired(token.value))
     const currentUser = computed(() => user.value)
+
+    // Token expired tekshirish
+    function isTokenExpired(jwtToken) {
+        if (!jwtToken) return true
+
+        try {
+            const base64Url = jwtToken.split('.')[1]
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            )
+            const decoded = JSON.parse(jsonPayload)
+            const currentTime = Math.floor(Date.now() / 1000)
+
+            return decoded.exp && decoded.exp < currentTime
+        } catch (err) {
+            console.error('Token decode error:', err)
+            return true
+        }
+    }
 
     function handleUnauthorized() {
         logout()
@@ -22,6 +45,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function makeAuthenticatedRequest(url, options = {}) {
         try {
+            // Token expired tekshir
+            if (isTokenExpired(token.value)) {
+                handleUnauthorized()
+                throw new Error('Token expired - Session ended')
+            }
+
             const response = await fetch(url, {
                 ...options,
                 headers: {
@@ -31,7 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             })
 
-            if (response.status === 403) {
+            // 401 yoki 403 bo'lsa logout qil
+            if (response.status === 401 || response.status === 403) {
                 handleUnauthorized()
                 throw new Error('Unauthorized - Session expired')
             }
@@ -44,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(userData) {
         try {
-            const response = await fetch(`${API_URL}/api/auth/login`, {  // ← O'ZGARDI
+            const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -111,7 +141,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function register(userData) {
         try {
-            const response = await fetch(`${API_URL}/api/auth/register`, {  // ← O'ZGARDI
+            const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -196,6 +226,12 @@ export const useAuthStore = defineStore('auth', () => {
         const savedPermissionIds = localStorage.getItem('permissionIds')
 
         if (savedToken && savedUser) {
+            // Token expired tekshir
+            if (isTokenExpired(savedToken)) {
+                logout()
+                return
+            }
+
             token.value = savedToken
             user.value = JSON.parse(savedUser)
             userId.value = savedUserId
@@ -218,6 +254,7 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         checkAuth,
-        makeAuthenticatedRequest
+        makeAuthenticatedRequest,
+        isTokenExpired
     }
 })

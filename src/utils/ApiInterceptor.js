@@ -22,15 +22,26 @@ export function setupApiInterceptor() {
         }
     )
 
-    // Response interceptor - 401 xatolarni tutish
+    // Response interceptor - 401, 403 xatolarni tutish
     axios.interceptors.response.use(
         (response) => response,
         (error) => {
-            if (error.response?.status === 401) {
-                // Token muddati tugagan yoki noto'g'ri
+            // 401 yoki 403 bo'lsa logout qil
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                // Token o'chir
                 localStorage.removeItem('token')
                 localStorage.removeItem('user')
+                localStorage.removeItem('userId')
+                localStorage.removeItem('roleIds')
+                localStorage.removeItem('permissionIds')
+
+                // Login sahifasiga o'tkazish
                 router.push('/login')
+
+                // Store'ni tozalash
+                const { useAuthStore } = require('../stores/auth')
+                const authStore = useAuthStore()
+                authStore.logout()
             }
             return Promise.reject(error)
         }

@@ -102,7 +102,7 @@ function handleLogout() {
               Xona turi
             </button>
             <button @click="goToAttendance" class="dropdown-item">
-              Navbatchilik
+              Davomat
             </button>
           </div>
         </div>

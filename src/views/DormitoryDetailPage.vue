@@ -149,7 +149,6 @@ function closeSuccessModal() {
   showSuccessModal.value = false
 }
 
-// ✅ Leaders Fetch Qilish (Create Modal)
 async function fetchLeaders(searchQuery = '') {
   loadingLeaders.value = true
 
@@ -159,7 +158,8 @@ async function fetchLeaders(searchQuery = '') {
       size: 100,
       search: {
         value: searchQuery || '',
-        floorId: 0
+        floorId: null,
+        dormId: parseInt(dormitoryId)
       }
     })
 
@@ -172,8 +172,7 @@ async function fetchLeaders(searchQuery = '') {
   }
 }
 
-// ✅ Leaders Fetch Qilish (Edit Modal)
-async function fetchEditModalLeaders(searchQuery = '') {
+async function fetchEditModalLeaders(searchQuery = '', floorId = null) {
   editLoadingLeaders.value = true
 
   try {
@@ -182,7 +181,8 @@ async function fetchEditModalLeaders(searchQuery = '') {
       size: 100,
       search: {
         value: searchQuery || '',
-        floorId: 0
+        floorId: floorId || null,
+        dormId: parseInt(dormitoryId)
       }
     })
 
@@ -193,6 +193,13 @@ async function fetchEditModalLeaders(searchQuery = '') {
   } finally {
     editLoadingLeaders.value = false
   }
+}
+
+// ✅ Leader Modal Ochish (Edit) - floorId bilan
+async function openLeaderModalForEdit() {
+  showLeaderModal.value = true
+  editLeaderSearchQuery.value = ''
+  await fetchEditModalLeaders('', editForm.value.id)  // ← floorId yuborish
 }
 
 // ✅ Leader Tanlash (Create Modal)
@@ -217,13 +224,6 @@ async function openLeaderModalForCreate() {
   leaderSearchQuery.value = ''
   createForm.value.leaderId = null
   await fetchLeaders()
-}
-
-// ✅ Leader Modal Ochish (Edit)
-async function openLeaderModalForEdit() {
-  showLeaderModal.value = true
-  editLeaderSearchQuery.value = ''
-  await fetchEditModalLeaders()
 }
 
 // ✅ Search Leaders (Create Modal)
@@ -360,7 +360,7 @@ function closeCreateModal() {
   showLeaderModal.value = false
 }
 
-// ✅ Create Floor bilan leaderId va randomString
+// ✅ Create Floor - TO'G'RI PAYLOAD
 async function createFloor() {
   formError.value = ''
 
@@ -380,8 +380,8 @@ async function createFloor() {
     const response = await axios.post('/api/floor/create', {
       name: createForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      leaderId: createForm.value.leaderId,
-      randomString: createForm.value.randomString.trim()
+      leaderId: createForm.value.leaderId || null,
+      randString: createForm.value.randomString.trim()  // ← Backend randString kutadi
     })
 
     closeCreateModal()
@@ -401,7 +401,7 @@ function openEditModal(floor) {
     name: floor.name,
     dormId: dormitoryId,
     leaderId: floor.leaderId || null,
-    randomString: floor.randomString || ''
+    randomString: floor.randString || ''  // ← Backend randString ni ol
   }
   formError.value = ''
   showEditModal.value = true
@@ -420,7 +420,7 @@ function closeEditModal() {
   showLeaderModal.value = false
 }
 
-// ✅ Update Floor bilan leaderId va randomString
+// ✅ Update Floor - TO'G'RI PAYLOAD
 async function updateFloor() {
   formError.value = ''
 
@@ -432,12 +432,12 @@ async function updateFloor() {
   editLoading.value = true
 
   try {
-    const response = await axios.post('/api/floor/update', {
+    const response = await axios.put('/api/floor/update', {
       id: editForm.value.id,
       name: editForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      leaderId: editForm.value.leaderId,
-      randomString: editForm.value.randomString
+      leaderId: editForm.value.leaderId || null,
+      randString: editForm.value.randomString  // ← Backend randString kutadi
     })
 
     closeEditModal()
@@ -557,12 +557,12 @@ onMounted(() => {
                 <div class="floor-info-item">
                   <span class="floor-label">Qavat sardori:</span>
                   <span class="floor-value">
-      <span v-if="floor.leaderFirstName || floor.leaderLastName">
-        {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
-        <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
-      </span>
-      <span v-else class="no-data">Tayinlanmagan</span>
-    </span>
+                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
+                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
+                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
+                    </span>
+                    <span v-else class="no-data">Tayinlanmagan</span>
+                  </span>
                 </div>
 
                 <!-- Rooms Count -->
@@ -571,19 +571,16 @@ onMounted(() => {
                   <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
                 </div>
 
-                <!-- ✅ TELEGRAM LINK -->
-                <div class="floor-info-item" v-if="floor.randomString">
+                <!-- ✅ TELEGRAM LINK - LISTDA -->
+                <div class="floor-info-item" v-if="floor.randString">
                   <span class="floor-label">Taklif havolasi:</span>
                   <div class="telegram-link-container">
-      <span class="telegram-link">
-        https://t.me/nlw_support_bot?start={{ floor.randomString }}
-      </span>
                     <button
-                        @click="copyTelegramLink(floor.randomString)"
+                        @click="copyTelegramLink(floor.randString)"
                         class="btn-copy-link"
-                        title="Havolani nusxalash"
+                        title="Taklif havolani nusxalash"
                     >
-                      📋 Nusxalash
+                      📋 Taklif havolasini nusxalash
                     </button>
                   </div>
                 </div>
@@ -1180,6 +1177,7 @@ onMounted(() => {
   gap: 0.5rem;
   align-items: center;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .telegram-link {
@@ -1191,6 +1189,7 @@ onMounted(() => {
   word-break: break-all;
   flex: 1;
   font-family: monospace;
+  min-width: 150px;
 }
 
 .btn-copy-link {
@@ -1384,6 +1383,7 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  font-family: inherit;
 }
 
 .form-input:focus {
@@ -1424,6 +1424,7 @@ onMounted(() => {
   font-weight: 600;
   text-align: left;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-select-leader:hover {
@@ -1440,6 +1441,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-clear-leader:hover {
@@ -1468,6 +1470,7 @@ onMounted(() => {
   transition: all 0.3s;
   white-space: nowrap;
   font-size: 0.9rem;
+  font-family: inherit;
 }
 
 .btn-regenerate:hover:not(:disabled) {
@@ -1523,6 +1526,7 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: all 0.3s;
   flex-shrink: 0;
+  font-family: inherit;
 }
 
 .btn-copy-preview:hover {
@@ -1548,6 +1552,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-search:hover:not(:disabled) {
@@ -1634,6 +1639,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-cancel:hover:not(:disabled) {
@@ -1654,6 +1660,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -1674,6 +1681,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .btn-delete-confirm:hover:not(:disabled) {
@@ -1735,6 +1743,7 @@ onMounted(() => {
   font-size: 1rem;
   transition: all 0.3s;
   min-width: 120px;
+  font-family: inherit;
 }
 
 .btn-message-ok:hover {

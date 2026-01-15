@@ -1,8 +1,8 @@
 <script setup>
-import {ref, onMounted, watch} from 'vue'
+import {ref, onMounted, watch, nextTick} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -47,6 +47,9 @@ const loadingDorms = ref(false)
 const loadingFloors = ref(false)
 const loadingRooms = ref(false)
 const loadingRoles = ref(false)
+
+// ✅ YANGI - Modal ochilish holatini kuzatish
+const isEditModalOpening = ref(false)
 
 // Form data
 const createForm = ref({
@@ -106,7 +109,6 @@ function goBack() {
   router.push('/dashboard')
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchUsers() {
   loading.value = true
   error.value = ''
@@ -135,7 +137,6 @@ async function fetchUsers() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitories() {
   loadingDorms.value = true
 
@@ -156,7 +157,6 @@ async function fetchDormitories() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloors(dormId, isFilter = false) {
   if (!dormId) {
     if (isFilter) {
@@ -194,7 +194,6 @@ async function fetchFloors(dormId, isFilter = false) {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRooms(floorId, isFilter = false) {
   if (!floorId) {
     if (isFilter) {
@@ -224,7 +223,6 @@ async function fetchRooms(floorId, isFilter = false) {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoles() {
   loadingRoles.value = true
 
@@ -239,10 +237,10 @@ async function fetchRoles() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloorsForEdit(dormId) {
   if (!dormId) {
     editFloors.value = []
+    editRooms.value = []
     return
   }
 
@@ -258,10 +256,10 @@ async function fetchFloorsForEdit(dormId) {
     editFloors.value = response.data.list || []
   } catch (err) {
     console.error('Edit floors fetch error:', err)
+    editFloors.value = []
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomsForEdit(floorId) {
   if (!floorId) {
     editRooms.value = []
@@ -270,10 +268,10 @@ async function fetchRoomsForEdit(floorId) {
 
   try {
     const response = await axios.get(`/api/room/list/${floorId}`)
-
     editRooms.value = response.data || []
   } catch (err) {
     console.error('Edit rooms fetch error:', err)
+    editRooms.value = []
   }
 }
 
@@ -338,23 +336,25 @@ function clearFormErrors() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function checkUsernameExists(username, userId = null) {
-  if (!username || !username.trim()) {
+  if (!username || !username.trim) {
+    return false
+  }
+
+  const usernameValue = username.trim()
+  if (!usernameValue) {
     return false
   }
 
   try {
     const response = await axios.get('/api/auth/check-exist-username', {
       params: {
-        username: username.trim(),
+        username: usernameValue,
         ...(userId && { id: userId.toString() })
       }
     })
 
-    const exists = response.data
-    console.log('Username check result:', { username, userId, exists })
-    return exists === true
+    return response.data === true
   } catch (err) {
     console.error('Username check error:', err)
     return false
@@ -375,12 +375,9 @@ async function validateForm(form, isEdit = false) {
     isValid = false
   }
 
-  if (form.username && form.username.trim()) {
-    console.log('Checking username:', form.username, 'isEdit:', isEdit, 'userId:', form.id)
+  if (form.username && form.username.trim && form.username.trim()) {
     const userId = isEdit ? form.id : null
     const usernameExists = await checkUsernameExists(form.username, userId)
-
-    console.log('Username exists result:', usernameExists)
 
     if (usernameExists) {
       formErrors.value.username = 'Bu username allaqachon band!'
@@ -391,7 +388,6 @@ async function validateForm(form, isEdit = false) {
   return isValid
 }
 
-// Create User
 async function openCreateModal() {
   createForm.value = {
     firstName: '',
@@ -425,9 +421,10 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createUser() {
-  if (!validateForm(createForm.value)) {
+  const isFormValid = await validateForm(createForm.value)
+
+  if (!isFormValid) {
     return
   }
 
@@ -435,17 +432,17 @@ async function createUser() {
 
   try {
     const response = await axios.post('/api/user/create', {
-      firstName: createForm.value.firstName.trim(),
-      lastName: createForm.value.lastName.trim(),
+      firstName: createForm.value.firstName?.trim() || '',
+      lastName: createForm.value.lastName?.trim() || '',
       middleName: createForm.value.middleName?.trim() || '',
-      username: createForm.value.username.trim(),
-      password: createForm.value.password.trim(),
+      username: createForm.value.username?.trim() || '',
+      password: createForm.value.password?.trim() || '',
       telegramUsername: createForm.value.telegramUsername?.trim() || '',
-      phone: createForm.value.phone.trim(),
-      roleId: createForm.value.roleId,
-      dormId: createForm.value.dormId,
-      floorId: createForm.value.floorId,
-      roomId: createForm.value.roomId
+      phone: createForm.value.phone?.trim() || '',
+      roleId: createForm.value.roleId || null,
+      dormId: createForm.value.dormId || null,
+      floorId: createForm.value.floorId || null,
+      roomId: createForm.value.roomId || null
     })
 
     closeCreateModal()
@@ -458,13 +455,21 @@ async function createUser() {
   }
 }
 
-// Edit User
+// ✅ TO'G'IRLANGAN - Modal ochilish jarayonini boshqarish
 async function openEditModal(user) {
+  // Modal ochilayotganini belgilash
+  isEditModalOpening.value = true
+
+  // Avval arraylarni tozalash
+  editFloors.value = []
+  editRooms.value = []
+
   let selectedRoleId = null
   if (user.roleIds && Array.isArray(user.roleIds) && user.roleIds.length > 0) {
     selectedRoleId = user.roleIds[0]
   }
 
+  // Formani to'ldirish
   editForm.value = {
     id: user.id,
     firstName: user.firstName,
@@ -482,6 +487,7 @@ async function openEditModal(user) {
 
   clearFormErrors()
 
+  // Dormitories va Roles yuklanishi
   if (dormitories.value.length === 0) {
     await fetchDormitories()
   }
@@ -489,24 +495,34 @@ async function openEditModal(user) {
     await fetchRoles()
   }
 
+  // Agar dormId bo'lsa, qavatlarni yuklash
   if (editForm.value.dormId) {
     await fetchFloorsForEdit(editForm.value.dormId)
-    if (editForm.value.floorId) {
-      await fetchRoomsForEdit(editForm.value.floorId)
-    }
   }
 
+  // Agar floorId bo'lsa, xonalarni yuklash
+  if (editForm.value.floorId) {
+    await fetchRoomsForEdit(editForm.value.floorId)
+  }
+
+  // Modalni ochish
   showEditModal.value = true
+
+  // nextTick dan keyin modal ochilish tugaganini belgilash
+  await nextTick()
+  isEditModalOpening.value = false
 }
 
 function closeEditModal() {
   showEditModal.value = false
   clearFormErrors()
+  isEditModalOpening.value = false
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateUser() {
-  if (!validateForm(editForm.value, true)) {
+  const isFormValid = await validateForm(editForm.value, true)
+
+  if (!isFormValid) {
     return
   }
 
@@ -515,23 +531,23 @@ async function updateUser() {
   try {
     const requestBody = {
       id: editForm.value.id,
-      firstName: editForm.value.firstName.trim(),
-      lastName: editForm.value.lastName.trim(),
+      firstName: editForm.value.firstName?.trim() || '',
+      lastName: editForm.value.lastName?.trim() || '',
       middleName: editForm.value.middleName?.trim() || '',
-      username: editForm.value.username.trim(),
+      username: editForm.value.username?.trim() || '',
       telegramUsername: editForm.value.telegramUsername?.trim() || '',
-      phone: editForm.value.phone.trim(),
-      roleId: editForm.value.roleId,
-      dormId: editForm.value.dormId,
-      floorId: editForm.value.floorId,
-      roomId: editForm.value.roomId
+      phone: editForm.value.phone?.trim() || '',
+      roleId: editForm.value.roleId || null,
+      dormId: editForm.value.dormId || null,
+      floorId: editForm.value.floorId || null,
+      roomId: editForm.value.roomId || null
     }
 
-    if (editForm.value.password && editForm.value.password.trim()) {
+    if (editForm.value.password?.trim && editForm.value.password.trim()) {
       requestBody.password = editForm.value.password.trim()
     }
 
-    const response = await axios.post('/api/user/update', requestBody)
+    const response = await axios.put('/api/user/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli yangilandi')
@@ -543,7 +559,6 @@ async function updateUser() {
   }
 }
 
-// Delete User
 function openDeleteModal(id) {
   deleteId.value = id
   showDeleteModal.value = true
@@ -554,7 +569,6 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteUser() {
   deleteLoading.value = true
 
@@ -593,22 +607,37 @@ watch(() => createForm.value.floorId, (newVal) => {
   }
 })
 
-// Watchers for cascading dropdowns (Edit)
-watch(() => editForm.value.dormId, (newVal) => {
+// ✅ TO'G'IRLANGAN - Modal ochilganda watcher ishlamasligi uchun
+watch(() => editForm.value.dormId, async (newVal, oldVal) => {
+  // Modal ochilayotgan bo'lsa, watcher ishlamaydi
+  if (isEditModalOpening.value) {
+    return
+  }
+
+  // Faqat foydalanuvchi o'zgartirsa ishlasin
   editForm.value.floorId = null
   editForm.value.roomId = null
   editRooms.value = []
+
   if (newVal) {
-    fetchFloorsForEdit(newVal)
+    await fetchFloorsForEdit(newVal)
   } else {
     editFloors.value = []
   }
 })
 
-watch(() => editForm.value.floorId, (newVal) => {
+// ✅ TO'G'IRLANGAN - Modal ochilganda watcher ishlamasligi uchun
+watch(() => editForm.value.floorId, async (newVal, oldVal) => {
+  // Modal ochilayotgan bo'lsa, watcher ishlamaydi
+  if (isEditModalOpening.value) {
+    return
+  }
+
+  // Faqat foydalanuvchi o'zgartirsa ishlasin
   editForm.value.roomId = null
+
   if (newVal) {
-    fetchRoomsForEdit(newVal)
+    await fetchRoomsForEdit(newVal)
   } else {
     editRooms.value = []
   }
@@ -993,7 +1022,7 @@ onMounted(() => {
             >
               <option :value="null" disabled hidden>Xonani tanlang</option>
               <option v-for="room in rooms" :key="room.id" :value="room.id">
-                {{ room.number }} - {{ room.name }}
+                {{ room.number }} - xona
               </option>
             </select>
           </div>
@@ -1010,7 +1039,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- ✅ TO'G'IRLANGAN - Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-xlarge">
         <div class="modal-header">
@@ -1058,7 +1087,7 @@ onMounted(() => {
 
           <div class="form-row">
             <div class="form-group">
-              <label>Username *</label>
+              <label>Username</label>
               <input
                   v-model="editForm.username"
                   type="text"
@@ -1132,6 +1161,7 @@ onMounted(() => {
             </select>
           </div>
 
+          <!-- ✅ TO'G'IRLANGAN - editFloors ishlatiladi -->
           <div class="form-group">
             <label>Qavat</label>
             <select
@@ -1146,6 +1176,7 @@ onMounted(() => {
             </select>
           </div>
 
+          <!-- ✅ TO'G'IRLANGAN - editRooms ishlatiladi -->
           <div class="form-group">
             <label>Xona</label>
             <select
@@ -1155,7 +1186,7 @@ onMounted(() => {
             >
               <option :value="null" disabled hidden>Xonani tanlang</option>
               <option v-for="room in editRooms" :key="room.id" :value="room.id">
-                {{ room.number }} - {{ room.name }}
+                {{ room.number }} - xona
               </option>
             </select>
           </div>
@@ -1970,7 +2001,6 @@ onMounted(() => {
   }
 
   .users-table {
-    min-width: 1000px;
     min-width: 1000px;
   }
 
