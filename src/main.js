@@ -17,14 +17,21 @@ const authStore = useAuthStore()
 // App load bo'lganida token tekshir
 authStore.checkAuth()
 
-// Axios interceptor setup - token expire bo'lsa handle qil
+// Axios interceptor setup
 setupApiInterceptor()
 
-// Router guard setup - har sahifada tekshir
+// Router guard setup
 router.beforeEach((to, from, next) => {
-    // Login sahifasi public
-    if (to.path === '/login' || to.path === '/register') {
+    // Login va register public
+    if (to.path === '/login' || to.path === '/register' || to.path === '/') {
         next()
+        return
+    }
+
+    // ✅ MUHIM - Token expired tekshir
+    if (authStore.isTokenExpired(authStore.token)) {
+        authStore.logout()
+        next('/login')
         return
     }
 
