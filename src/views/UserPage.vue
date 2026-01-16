@@ -1657,7 +1657,7 @@ onMounted(() => {
   width: 90%;
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-height: 100vh;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -1731,7 +1731,7 @@ onMounted(() => {
 }
 
 .form-input, .form-select {
-  width: 100%;
+  width: 80%;
   padding: 0.75rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
