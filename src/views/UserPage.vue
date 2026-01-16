@@ -1657,7 +1657,7 @@ onMounted(() => {
   width: 90%;
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-height: 90vh;
+  max-height: 100vh;
   overflow-y: auto;
 }
 
@@ -1666,7 +1666,7 @@ onMounted(() => {
 }
 
 .modal-xlarge {
-  max-width: 700px;
+  max-width: 800px;
 }
 
 .modal-message {
