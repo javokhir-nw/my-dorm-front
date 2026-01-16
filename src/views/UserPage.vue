@@ -1,5 +1,5 @@
 <script setup>
-import {ref, onMounted, watch, nextTick} from 'vue'
+import {ref, onMounted, watch, nextTick, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
 import axios from 'axios'
@@ -8,13 +8,13 @@ import SideMenu from '../views/SideMenu.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 
+// ✅ Data states
 const users = ref([])
 const total = ref(0)
-const totalPages = ref(0)
 const loading = ref(false)
 const error = ref('')
 
-// Search and pagination parameters
+// ✅ Search and pagination
 const searchQuery = ref('')
 const filterDormId = ref(null)
 const filterFloorId = ref(null)
@@ -22,37 +22,31 @@ const filterRoomId = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
-// Modal states
+// ✅ Modal states
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showSuccessModal = ref(false)
+const isEditModalOpening = ref(false)
 
-// Lists for dropdowns
+// ✅ Dropdown lists
 const dormitories = ref([])
 const floors = ref([])
 const rooms = ref([])
 const roles = ref([])
-
-// Edit uchun alohida
 const editFloors = ref([])
 const editRooms = ref([])
-
-// Lists for filters
 const filterFloors = ref([])
 const filterRooms = ref([])
 
-// Loading states for dropdowns
+// ✅ Loading states
 const loadingDorms = ref(false)
 const loadingFloors = ref(false)
 const loadingRooms = ref(false)
 const loadingRoles = ref(false)
 
-// ✅ YANGI - Modal ochilish holatini kuzatish
-const isEditModalOpening = ref(false)
-
-// Form data
-const createForm = ref({
+// ✅ Form data - resettable defaults
+const defaultCreateForm = {
   firstName: '',
   lastName: '',
   middleName: '',
@@ -64,38 +58,17 @@ const createForm = ref({
   dormId: null,
   floorId: null,
   roomId: null
-})
+}
 
+const createForm = ref({...defaultCreateForm})
 const editForm = ref({
   id: 0,
-  firstName: '',
-  lastName: '',
-  middleName: '',
-  username: '',
-  password: '',
-  telegramUsername: '',
-  phone: '',
-  roleId: null,
-  dormId: null,
-  floorId: null,
-  roomId: null
+  ...defaultCreateForm
 })
 
 const deleteId = ref(null)
 
-// Success/Error message
-const modalMessage = ref({
-  title: '',
-  text: '',
-  type: 'success'
-})
-
-// Loading states for modals
-const createLoading = ref(false)
-const editLoading = ref(false)
-const deleteLoading = ref(false)
-
-// Form validation errors
+// ✅ Error states
 const formErrors = ref({
   firstName: '',
   lastName: '',
@@ -105,10 +78,37 @@ const formErrors = ref({
   roleId: ''
 })
 
+const modalMessage = ref({
+  title: '',
+  text: '',
+  type: 'success'
+})
+
+// ✅ Loading states for actions
+const createLoading = ref(false)
+const editLoading = ref(false)
+const deleteLoading = ref(false)
+
+// ✅ COMPUTED - totalPages calculation
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+// ✅ COMPUTED - Check if filters active
+const hasActiveFilters = computed(() => {
+  return filterDormId.value || filterFloorId.value || filterRoomId.value
+})
+
+// ✅ COMPUTED - Check if any search active
+const hasSearch = computed(() => {
+  return searchQuery.value || hasActiveFilters.value
+})
+
+// ============ FUNCTIONS ============
+
 function goBack() {
   router.push('/dashboard')
 }
 
+// ✅ Fetch users with error handling
 async function fetchUsers() {
   loading.value = true
   error.value = ''
@@ -127,7 +127,6 @@ async function fetchUsers() {
 
     users.value = response.data.list || []
     total.value = response.data.total || 0
-    totalPages.value = response.data.totalPages || Math.ceil(total.value / pageSize.value)
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -137,18 +136,15 @@ async function fetchUsers() {
   }
 }
 
+// ✅ Fetch reference data
 async function fetchDormitories() {
   loadingDorms.value = true
-
   try {
     const response = await axios.post('/api/dorm/list', {
       page: 0,
       size: 100,
-      search: {
-        value: null
-      }
+      search: { value: null }
     })
-
     dormitories.value = response.data.list || []
   } catch (err) {
     console.error('Dormitories fetch error:', err)
@@ -157,9 +153,10 @@ async function fetchDormitories() {
   }
 }
 
-async function fetchFloors(dormId, isFilter = false) {
+// ✅ Generic fetch floors function
+async function fetchFloors(dormId, targetArray = 'floors') {
   if (!dormId) {
-    if (isFilter) {
+    if (targetArray === 'filterFloors') {
       filterFloors.value = []
       filterFloorId.value = null
       filterRooms.value = []
@@ -170,33 +167,28 @@ async function fetchFloors(dormId, isFilter = false) {
     return
   }
 
-  const loadingRef = isFilter ? ref(true) : loadingFloors
-  loadingRef.value = true
-
   try {
     const response = await axios.post(`/api/floor/list/${dormId}`, {
       page: 0,
       size: 1000,
-      search: {
-        value: null
-      }
+      search: { value: null }
     })
 
-    if (isFilter) {
-      filterFloors.value = response.data.list || []
+    const data = response.data.list || []
+    if (targetArray === 'filterFloors') {
+      filterFloors.value = data
     } else {
-      floors.value = response.data.list || []
+      floors.value = data
     }
   } catch (err) {
     console.error('Floors fetch error:', err)
-  } finally {
-    loadingRef.value = false
   }
 }
 
-async function fetchRooms(floorId, isFilter = false) {
+// ✅ Generic fetch rooms function
+async function fetchRooms(floorId, targetArray = 'rooms') {
   if (!floorId) {
-    if (isFilter) {
+    if (targetArray === 'filterRooms') {
       filterRooms.value = []
       filterRoomId.value = null
     } else {
@@ -205,30 +197,25 @@ async function fetchRooms(floorId, isFilter = false) {
     return
   }
 
-  const loadingRef = isFilter ? ref(true) : loadingRooms
-  loadingRef.value = true
-
   try {
     const response = await axios.get(`/api/room/list/${floorId}`)
+    const data = response.data || []
 
-    if (isFilter) {
-      filterRooms.value = response.data || []
+    if (targetArray === 'filterRooms') {
+      filterRooms.value = data
     } else {
-      rooms.value = response.data || []
+      rooms.value = data
     }
   } catch (err) {
     console.error('Rooms fetch error:', err)
-  } finally {
-    loadingRef.value = false
   }
 }
 
+// ✅ Fetch roles
 async function fetchRoles() {
   loadingRoles.value = true
-
   try {
     const response = await axios.get('/api/role/list')
-
     roles.value = response.data || []
   } catch (err) {
     console.error('Roles fetch error:', err)
@@ -237,43 +224,7 @@ async function fetchRoles() {
   }
 }
 
-async function fetchFloorsForEdit(dormId) {
-  if (!dormId) {
-    editFloors.value = []
-    editRooms.value = []
-    return
-  }
-
-  try {
-    const response = await axios.post(`/api/floor/list/${dormId}`, {
-      page: 0,
-      size: 1000,
-      search: {
-        value: null
-      }
-    })
-
-    editFloors.value = response.data.list || []
-  } catch (err) {
-    console.error('Edit floors fetch error:', err)
-    editFloors.value = []
-  }
-}
-
-async function fetchRoomsForEdit(floorId) {
-  if (!floorId) {
-    editRooms.value = []
-    return
-  }
-
-  try {
-    const response = await axios.get(`/api/room/list/${floorId}`)
-    editRooms.value = response.data || []
-  } catch (err) {
-    console.error('Edit rooms fetch error:', err)
-    editRooms.value = []
-  }
-}
+// ============ SEARCH & FILTER FUNCTIONS ============
 
 function handleSearch() {
   currentPage.value = 1
@@ -303,27 +254,23 @@ function goToPage(page) {
   }
 }
 
+// ============ MODAL MESSAGE FUNCTIONS ============
+
 function showSuccessMessage(title, text) {
-  modalMessage.value = {
-    title,
-    text,
-    type: 'success'
-  }
+  modalMessage.value = { title, text, type: 'success' }
   showSuccessModal.value = true
 }
 
 function showErrorMessage(title, text) {
-  modalMessage.value = {
-    title,
-    text,
-    type: 'error'
-  }
+  modalMessage.value = { title, text, type: 'error' }
   showSuccessModal.value = true
 }
 
 function closeSuccessModal() {
   showSuccessModal.value = false
 }
+
+// ============ FORM VALIDATION ============
 
 function clearFormErrors() {
   formErrors.value = {
@@ -336,14 +283,19 @@ function clearFormErrors() {
   }
 }
 
+// ✅ Check username exists (dengan caching)
+const usernameCheckCache = new Map()
+
 async function checkUsernameExists(username, userId = null) {
-  if (!username || !username.trim) {
+  if (!username?.trim()) {
     return false
   }
 
   const usernameValue = username.trim()
-  if (!usernameValue) {
-    return false
+  const cacheKey = `${usernameValue}:${userId || 'new'}`
+
+  if (usernameCheckCache.has(cacheKey)) {
+    return usernameCheckCache.get(cacheKey)
   }
 
   try {
@@ -354,28 +306,31 @@ async function checkUsernameExists(username, userId = null) {
       }
     })
 
-    return response.data === true
+    const exists = response.data === true
+    usernameCheckCache.set(cacheKey, exists)
+    return exists
   } catch (err) {
     console.error('Username check error:', err)
     return false
   }
 }
 
+// ✅ Improved validation
 async function validateForm(form, isEdit = false) {
   clearFormErrors()
   let isValid = true
 
-  if (!form.firstName || !form.firstName.trim()) {
+  if (!form.firstName?.trim()) {
     formErrors.value.firstName = 'Ismni kiriting!'
     isValid = false
   }
 
-  if (!form.lastName || !form.lastName.trim()) {
+  if (!form.lastName?.trim()) {
     formErrors.value.lastName = 'Familiyani kiriting!'
     isValid = false
   }
 
-  if (form.username && form.username.trim && form.username.trim()) {
+  if (form.username?.trim()) {
     const userId = isEdit ? form.id : null
     const usernameExists = await checkUsernameExists(form.username, userId)
 
@@ -388,20 +343,10 @@ async function validateForm(form, isEdit = false) {
   return isValid
 }
 
+// ============ CREATE MODAL ============
+
 async function openCreateModal() {
-  createForm.value = {
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    username: '',
-    password: '',
-    telegramUsername: '',
-    phone: '',
-    roleId: null,
-    dormId: null,
-    floorId: null,
-    roomId: null
-  }
+  createForm.value = {...defaultCreateForm}
   floors.value = []
   rooms.value = []
   clearFormErrors()
@@ -431,7 +376,7 @@ async function createUser() {
   createLoading.value = true
 
   try {
-    const response = await axios.post('/api/user/create', {
+    const payload = {
       firstName: createForm.value.firstName?.trim() || '',
       lastName: createForm.value.lastName?.trim() || '',
       middleName: createForm.value.middleName?.trim() || '',
@@ -443,7 +388,9 @@ async function createUser() {
       dormId: createForm.value.dormId || null,
       floorId: createForm.value.floorId || null,
       roomId: createForm.value.roomId || null
-    })
+    }
+
+    await axios.post('/api/user/create', payload)
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli yaratildi')
@@ -455,21 +402,15 @@ async function createUser() {
   }
 }
 
-// ✅ TO'G'IRLANGAN - Modal ochilish jarayonini boshqarish
-async function openEditModal(user) {
-  // Modal ochilayotganini belgilash
-  isEditModalOpening.value = true
+// ============ EDIT MODAL ============
 
-  // Avval arraylarni tozalash
+async function openEditModal(user) {
+  isEditModalOpening.value = true
   editFloors.value = []
   editRooms.value = []
 
-  let selectedRoleId = null
-  if (user.roleIds && Array.isArray(user.roleIds) && user.roleIds.length > 0) {
-    selectedRoleId = user.roleIds[0]
-  }
+  const selectedRoleId = user.roleIds?.[0] || null
 
-  // Formani to'ldirish
   editForm.value = {
     id: user.id,
     firstName: user.firstName,
@@ -487,7 +428,6 @@ async function openEditModal(user) {
 
   clearFormErrors()
 
-  // Dormitories va Roles yuklanishi
   if (dormitories.value.length === 0) {
     await fetchDormitories()
   }
@@ -495,22 +435,54 @@ async function openEditModal(user) {
     await fetchRoles()
   }
 
-  // Agar dormId bo'lsa, qavatlarni yuklash
   if (editForm.value.dormId) {
     await fetchFloorsForEdit(editForm.value.dormId)
   }
 
-  // Agar floorId bo'lsa, xonalarni yuklash
   if (editForm.value.floorId) {
     await fetchRoomsForEdit(editForm.value.floorId)
   }
 
-  // Modalni ochish
   showEditModal.value = true
 
-  // nextTick dan keyin modal ochilish tugaganini belgilash
   await nextTick()
   isEditModalOpening.value = false
+}
+
+// ✅ Separate edit floor/room fetch
+async function fetchFloorsForEdit(dormId) {
+  if (!dormId) {
+    editFloors.value = []
+    editRooms.value = []
+    return
+  }
+
+  try {
+    const response = await axios.post(`/api/floor/list/${dormId}`, {
+      page: 0,
+      size: 1000,
+      search: { value: null }
+    })
+    editFloors.value = response.data.list || []
+  } catch (err) {
+    console.error('Edit floors fetch error:', err)
+    editFloors.value = []
+  }
+}
+
+async function fetchRoomsForEdit(floorId) {
+  if (!floorId) {
+    editRooms.value = []
+    return
+  }
+
+  try {
+    const response = await axios.get(`/api/room/list/${floorId}`)
+    editRooms.value = response.data || []
+  } catch (err) {
+    console.error('Edit rooms fetch error:', err)
+    editRooms.value = []
+  }
 }
 
 function closeEditModal() {
@@ -543,11 +515,11 @@ async function updateUser() {
       roomId: editForm.value.roomId || null
     }
 
-    if (editForm.value.password?.trim && editForm.value.password.trim()) {
+    if (editForm.value.password?.trim()) {
       requestBody.password = editForm.value.password.trim()
     }
 
-    const response = await axios.put('/api/user/update', requestBody)
+    await axios.put('/api/user/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli yangilandi')
@@ -558,6 +530,8 @@ async function updateUser() {
     editLoading.value = false
   }
 }
+
+// ============ DELETE MODAL ============
 
 function openDeleteModal(id) {
   deleteId.value = id
@@ -573,7 +547,7 @@ async function deleteUser() {
   deleteLoading.value = true
 
   try {
-    const response = await axios.delete(`/api/user/delete/${deleteId.value}`)
+    await axios.delete(`/api/user/delete/${deleteId.value}`)
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli o\'chirildi')
@@ -586,13 +560,15 @@ async function deleteUser() {
   }
 }
 
-// Watchers for cascading dropdowns (Create)
+// ============ WATCHERS FOR CASCADE DROPDOWNS ============
+
+// Create form watchers
 watch(() => createForm.value.dormId, (newVal) => {
   createForm.value.floorId = null
   createForm.value.roomId = null
   rooms.value = []
   if (newVal) {
-    fetchFloors(newVal, false)
+    fetchFloors(newVal, 'floors')
   } else {
     floors.value = []
   }
@@ -601,20 +577,16 @@ watch(() => createForm.value.dormId, (newVal) => {
 watch(() => createForm.value.floorId, (newVal) => {
   createForm.value.roomId = null
   if (newVal) {
-    fetchRooms(newVal, false)
+    fetchRooms(newVal, 'rooms')
   } else {
     rooms.value = []
   }
 })
 
-// ✅ TO'G'IRLANGAN - Modal ochilganda watcher ishlamasligi uchun
-watch(() => editForm.value.dormId, async (newVal, oldVal) => {
-  // Modal ochilayotgan bo'lsa, watcher ishlamaydi
-  if (isEditModalOpening.value) {
-    return
-  }
+// Edit form watchers - WITH MODAL OPENING CHECK
+watch(() => editForm.value.dormId, async (newVal) => {
+  if (isEditModalOpening.value) return
 
-  // Faqat foydalanuvchi o'zgartirsa ishlasin
   editForm.value.floorId = null
   editForm.value.roomId = null
   editRooms.value = []
@@ -626,14 +598,9 @@ watch(() => editForm.value.dormId, async (newVal, oldVal) => {
   }
 })
 
-// ✅ TO'G'IRLANGAN - Modal ochilganda watcher ishlamasligi uchun
-watch(() => editForm.value.floorId, async (newVal, oldVal) => {
-  // Modal ochilayotgan bo'lsa, watcher ishlamaydi
-  if (isEditModalOpening.value) {
-    return
-  }
+watch(() => editForm.value.floorId, async (newVal) => {
+  if (isEditModalOpening.value) return
 
-  // Faqat foydalanuvchi o'zgartirsa ishlasin
   editForm.value.roomId = null
 
   if (newVal) {
@@ -643,13 +610,13 @@ watch(() => editForm.value.floorId, async (newVal, oldVal) => {
   }
 })
 
-// Watchers for filters
+// Filter watchers
 watch(() => filterDormId.value, (newVal) => {
   filterFloorId.value = null
   filterRoomId.value = null
   filterRooms.value = []
   if (newVal) {
-    fetchFloors(newVal, true)
+    fetchFloors(newVal, 'filterFloors')
   } else {
     filterFloors.value = []
   }
@@ -660,7 +627,7 @@ watch(() => filterDormId.value, (newVal) => {
 watch(() => filterFloorId.value, (newVal) => {
   filterRoomId.value = null
   if (newVal) {
-    fetchRooms(newVal, true)
+    fetchRooms(newVal, 'filterRooms')
   } else {
     filterRooms.value = []
   }
@@ -672,6 +639,8 @@ watch(() => filterRoomId.value, () => {
   currentPage.value = 1
   fetchUsers()
 })
+
+// ============ LIFECYCLE ============
 
 onMounted(() => {
   fetchUsers()
@@ -768,7 +737,7 @@ onMounted(() => {
         </div>
 
         <button
-            v-if="filterDormId || filterFloorId || filterRoomId"
+            v-if="hasActiveFilters"
             @click="clearFilters"
             class="btn-clear-filters"
         >
@@ -794,7 +763,7 @@ onMounted(() => {
       <div v-else-if="users.length === 0" class="empty-state">
         <div class="empty-icon">👥</div>
         <h3>Foydalanuvchilar topilmadi</h3>
-        <p v-if="searchQuery || filterDormId || filterFloorId || filterRoomId">
+        <p v-if="hasSearch">
           Filter bo'yicha natija topilmadi
         </p>
         <p v-else>Hozircha hech qanday foydalanuvchi yo'q</p>
@@ -1039,7 +1008,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- ✅ TO'G'IRLANGAN - Edit Modal -->
+    <!-- Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-xlarge">
         <div class="modal-header">
@@ -1161,7 +1130,6 @@ onMounted(() => {
             </select>
           </div>
 
-          <!-- ✅ TO'G'IRLANGAN - editFloors ishlatiladi -->
           <div class="form-group">
             <label>Qavat</label>
             <select
@@ -1176,7 +1144,6 @@ onMounted(() => {
             </select>
           </div>
 
-          <!-- ✅ TO'G'IRLANGAN - editRooms ishlatiladi -->
           <div class="form-group">
             <label>Xona</label>
             <select
@@ -1310,7 +1277,6 @@ onMounted(() => {
   background: #059669;
 }
 
-/* Search and Filters */
 .search-container {
   max-width: 1200px;
   margin: 0 auto 1.5rem;
@@ -1406,14 +1372,6 @@ onMounted(() => {
   transition: border-color 0.3s;
 }
 
-.filter-select option[disabled] {
-  color: #999;
-}
-
-.filter-select:invalid {
-  color: #999;
-}
-
 .filter-select:focus {
   outline: none;
   border-color: #667eea;
@@ -1467,7 +1425,6 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* Loading */
 .loading-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -1486,15 +1443,10 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Error */
 .error-card {
   background: white;
   padding: 2rem;
@@ -1521,7 +1473,6 @@ onMounted(() => {
   background: #5568d3;
 }
 
-/* Empty State */
 .empty-state {
   background: white;
   padding: 4rem 2rem;
@@ -1543,7 +1494,6 @@ onMounted(() => {
   color: #666;
 }
 
-/* Table */
 .table-container {
   background: white;
   border-radius: 12px;
@@ -1586,11 +1536,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-}
-
-.middle-name {
-  font-size: 0.85rem;
-  color: #666;
 }
 
 .role-badge {
@@ -1638,7 +1583,6 @@ onMounted(() => {
   background: #dc2626;
 }
 
-/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1694,7 +1638,6 @@ onMounted(() => {
   color: white;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1794,6 +1737,7 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  font-family: inherit;
 }
 
 .form-input:focus, .form-select:focus {
@@ -1904,7 +1848,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Success/Error Message Modal */
 .message-body {
   text-align: center;
   padding: 2rem 1.5rem;
