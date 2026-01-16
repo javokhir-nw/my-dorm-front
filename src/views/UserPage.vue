@@ -1710,6 +1710,9 @@ onMounted(() => {
 
 .form-group {
   margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .form-group:last-child {
@@ -1731,7 +1734,7 @@ onMounted(() => {
 }
 
 .form-input, .form-select {
-  width: 80%;
+  display: block;
   padding: 0.75rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
