@@ -2,7 +2,7 @@
 import {ref, onMounted} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {useAuthStore} from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -75,7 +75,6 @@ function goBack() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchFloorDetail() {
   loading.value = true
   error.value = ''
@@ -92,7 +91,6 @@ async function fetchFloorDetail() {
   }
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomTypes() {
   loadingRoomTypes.value = true
 
@@ -145,10 +143,7 @@ function validateForm(form) {
   clearFormErrors()
   let isValid = true
 
-  if (!form.number || !form.number.trim()) {
-    formErrors.value.number = 'Xona raqamini kiriting!'
-    isValid = false
-  }
+  // number va name majburiy emas, shuning uchun tekshirmaymiz
 
   if (!form.roomTypeId) {
     formErrors.value.roomTypeId = 'Xona turini tanlang!'
@@ -190,7 +185,6 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createRoom() {
   if (!validateForm(createForm.value)) {
     return
@@ -200,11 +194,19 @@ async function createRoom() {
 
   try {
     const requestBody = {
-      number: createForm.value.number.trim(),
-      name: createForm.value.name.trim(),
       floorId: parseInt(floorId),
       roomTypeId: createForm.value.roomTypeId,
       isRoom: createForm.value.isRoom
+    }
+
+    // Add number if provided
+    if (createForm.value.number && createForm.value.number.trim()) {
+      requestBody.number = createForm.value.number.trim()
+    }
+
+    // Add name if provided
+    if (createForm.value.name && createForm.value.name.trim()) {
+      requestBody.name = createForm.value.name.trim()
     }
 
     // Add capacity only if it's a bedroom
@@ -228,12 +230,12 @@ async function createRoom() {
 async function openEditModal(room) {
   editForm.value = {
     id: room.id,
-    number: room.number,
-    name: room.name,
+    number: room.number || '',
+    name: room.name || '',
     floorId: floorId,
     roomTypeId: room.roomTypeId,
     capacity: room.capacity || null,
-    isRoom: room.isRoom !== undefined ? room.isRoom : true
+    isRoom: room.isRoom === true
   }
   clearFormErrors()
 
@@ -249,7 +251,6 @@ function closeEditModal() {
   clearFormErrors()
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateRoom() {
   if (!validateForm(editForm.value)) {
     return
@@ -260,11 +261,19 @@ async function updateRoom() {
   try {
     const requestBody = {
       id: editForm.value.id,
-      number: editForm.value.number.trim(),
-      name: editForm.value.name.trim(),
       floorId: parseInt(floorId),
       roomTypeId: editForm.value.roomTypeId,
       isRoom: editForm.value.isRoom
+    }
+
+    // Add number if provided
+    if (editForm.value.number && editForm.value.number.trim()) {
+      requestBody.number = editForm.value.number.trim()
+    }
+
+    // Add name if provided
+    if (editForm.value.name && editForm.value.name.trim()) {
+      requestBody.name = editForm.value.name.trim()
     }
 
     // Add capacity only if it's a bedroom
@@ -295,7 +304,6 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteRoom() {
   deleteLoading.value = true
 
@@ -384,19 +392,34 @@ onMounted(() => {
                 class="room-card"
             >
               <div class="room-header">
-                <div class="room-number">{{ room.number }}</div>
+                <div class="room-number">{{ room.number || room.name || 'Noma\'lum' }}</div>
               </div>
 
               <div class="room-body">
+                <div class="room-info-item" v-if="room.name">
+                  <span class="room-label">Nomi:</span>
+                  <span class="room-value">{{ room.name }}</span>
+                </div>
+
                 <div class="room-info-item" v-if="room.capacity">
                   <span class="room-label">Sig'im:</span>
                   <span class="room-value">{{ room.capacity }} kishi</span>
                 </div>
 
+                <!-- ✅ Turi: roomTypeName ko'rsatiladi -->
                 <div class="room-info-item">
-                  <span class="room-label">Xona turi:</span>
+                  <span class="room-label">Turi:</span>
                   <span class="room-value">{{ room.roomTypeName }}</span>
                 </div>
+
+                <!-- ✅ Yotoq xonasi yoki yo'qligini ko'rsatish -->
+<!--                <div class="room-info-item">
+                  <span class="room-label">Kategoriya:</span>
+                  <span class="room-value">
+                    <span v-if="room.isRoom" class="badge badge-bedroom">🛏️ Yotoq xonasi</span>
+                    <span v-else class="badge badge-other">🏢 Boshqa xona</span>
+                  </span>
+                </div>-->
               </div>
 
               <div class="room-footer">
@@ -425,7 +448,7 @@ onMounted(() => {
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Xona raqami *</label>
+            <label>Xona raqami</label>
             <input
                 v-model="createForm.number"
                 type="text"
@@ -435,6 +458,19 @@ onMounted(() => {
                 @input="formErrors.number = ''"
             />
             <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Xona nomi</label>
+            <input
+                v-model="createForm.name"
+                type="text"
+                placeholder="Masalan: Katta zal"
+                class="form-input"
+                :class="{ 'input-error': formErrors.name }"
+                @input="formErrors.name = ''"
+            />
+            <p v-if="formErrors.name" class="error-message">{{ formErrors.name }}</p>
           </div>
 
           <div class="form-group">
@@ -502,7 +538,7 @@ onMounted(() => {
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Xona raqami *</label>
+            <label>Xona raqami</label>
             <input
                 v-model="editForm.number"
                 type="text"
@@ -512,6 +548,19 @@ onMounted(() => {
                 @input="formErrors.number = ''"
             />
             <p v-if="formErrors.number" class="error-message">{{ formErrors.number }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Xona nomi</label>
+            <input
+                v-model="editForm.name"
+                type="text"
+                placeholder="Masalan: Katta zal"
+                class="form-input"
+                :class="{ 'input-error': formErrors.name }"
+                @input="formErrors.name = ''"
+            />
+            <p v-if="formErrors.name" class="error-message">{{ formErrors.name }}</p>
           </div>
 
           <div class="form-group">
@@ -615,7 +664,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Previous styles remain the same... I'll only show the new/modified ones */
+/* Previous styles remain the same... */
 
 .page-container {
   min-height: 100vh;
@@ -893,6 +942,25 @@ onMounted(() => {
 .room-value {
   color: #333;
   font-weight: 600;
+}
+
+/* Badge styles for isRoom */
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.badge-bedroom {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-other {
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
 .room-footer {
