@@ -59,11 +59,11 @@ function copyToClipboardFallback(text) {
   }
 }
 
-// Form data
+// Form data - leaderIds array ga o'zgartirdik
 const createForm = ref({
   name: '',
   dormId: dormitoryId,
-  leaderId: null,
+  leaderIds: [], // O'zgardi: bitta ID emas, array
   randomString: ''
 })
 
@@ -71,7 +71,7 @@ const editForm = ref({
   id: 0,
   name: '',
   dormId: dormitoryId,
-  leaderId: null,
+  leaderIds: [], // O'zgardi: bitta ID emas, array
   randomString: ''
 })
 
@@ -199,30 +199,49 @@ async function fetchEditModalLeaders(searchQuery = '', floorId = null) {
 async function openLeaderModalForEdit() {
   showLeaderModal.value = true
   editLeaderSearchQuery.value = ''
-  await fetchEditModalLeaders('', editForm.value.id)  // ← floorId yuborish
+  await fetchEditModalLeaders('', editForm.value.id)
 }
 
-// ✅ Leader Tanlash (Create Modal)
-function selectLeader(user) {
-  createForm.value.leaderId = user.id
-  showLeaderModal.value = false
-  leaderSearchQuery.value = ''
-  leaders.value = []
+// ✅ Leader Tanlash/O'chirish (Create Modal) - Toggle qilish
+function toggleLeader(user) {
+  const index = createForm.value.leaderIds.indexOf(user.id)
+
+  if (index > -1) {
+    // Agar allaqachon tanlangan bo'lsa, o'chirish
+    createForm.value.leaderIds.splice(index, 1)
+  } else {
+    // Agar tanlanmagan bo'lsa, qo'shish
+    createForm.value.leaderIds.push(user.id)
+  }
 }
 
-// ✅ Leader Tanlash (Edit Modal)
-function selectEditLeader(user) {
-  editForm.value.leaderId = user.id
-  showLeaderModal.value = false
-  editLeaderSearchQuery.value = ''
-  editModalLeaders.value = []
+// ✅ Leader Tanlash/O'chirish (Edit Modal) - Toggle qilish
+function toggleEditLeader(user) {
+  const index = editForm.value.leaderIds.indexOf(user.id)
+
+  if (index > -1) {
+    // Agar allaqachon tanlangan bo'lsa, o'chirish
+    editForm.value.leaderIds.splice(index, 1)
+  } else {
+    // Agar tanlanmagan bo'lsa, qo'shish
+    editForm.value.leaderIds.push(user.id)
+  }
+}
+
+// ✅ Leader tanlangan yoki yo'qligini tekshirish (Create Modal)
+function isLeaderSelected(userId) {
+  return createForm.value.leaderIds.includes(userId)
+}
+
+// ✅ Leader tanlangan yoki yo'qligini tekshirish (Edit Modal)
+function isEditLeaderSelected(userId) {
+  return editForm.value.leaderIds.includes(userId)
 }
 
 // ✅ Leader Modal Ochish (Create)
 async function openLeaderModalForCreate() {
   showLeaderModal.value = true
   leaderSearchQuery.value = ''
-  createForm.value.leaderId = null
   await fetchLeaders()
 }
 
@@ -236,36 +255,54 @@ async function searchEditLeaders() {
   await fetchEditModalLeaders(editLeaderSearchQuery.value)
 }
 
-// ✅ Clear Leader (Create Modal)
-function clearLeader() {
-  createForm.value.leaderId = null
+// ✅ Clear All Leaders (Create Modal)
+function clearAllLeaders() {
+  createForm.value.leaderIds = []
 }
 
-// ✅ Clear Leader (Edit Modal)
-function clearEditLeader() {
-  editForm.value.leaderId = null
+// ✅ Clear All Leaders (Edit Modal)
+function clearAllEditLeaders() {
+  editForm.value.leaderIds = []
 }
 
-// Get selected leader name (Create Modal)
-function getSelectedLeaderName() {
-  if (!createForm.value.leaderId) return 'Sardor tanlang'
+// ✅ Tanlangan leaderlar nomlarini olish (Create Modal)
+function getSelectedLeadersNames() {
+  if (createForm.value.leaderIds.length === 0) {
+    return 'Sardorlar tanlang'
+  }
 
-  const leader = leaders.value.find(u => u.id === createForm.value.leaderId)
-  if (leader) {
+  const selectedLeaders = leaders.value.filter(u => createForm.value.leaderIds.includes(u.id))
+
+  if (selectedLeaders.length === 0) {
+    return `${createForm.value.leaderIds.length} ta sardor tanlangan`
+  }
+
+  if (selectedLeaders.length === 1) {
+    const leader = selectedLeaders[0]
     return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
   }
-  return 'Sardor tanlang'
+
+  return `${selectedLeaders.length} ta sardor tanlangan`
 }
 
-// Get selected leader name (Edit Modal)
-function getSelectedEditLeaderName() {
-  if (!editForm.value.leaderId) return 'Sardor tanlang'
+// ✅ Tanlangan leaderlar nomlarini olish (Edit Modal)
+function getSelectedEditLeadersNames() {
+  if (editForm.value.leaderIds.length === 0) {
+    return 'Sardorlar tanlang'
+  }
 
-  const leader = editModalLeaders.value.find(u => u.id === editForm.value.leaderId)
-  if (leader) {
+  const selectedLeaders = editModalLeaders.value.filter(u => editForm.value.leaderIds.includes(u.id))
+
+  if (selectedLeaders.length === 0) {
+    return `${editForm.value.leaderIds.length} ta sardor tanlangan`
+  }
+
+  if (selectedLeaders.length === 1) {
+    const leader = selectedLeaders[0]
     return `${leader.lastName} ${leader.firstName} ${leader.middleName || ''}`.trim()
   }
-  return 'Sardor tanlang'
+
+  return `${selectedLeaders.length} ta sardor tanlangan`
 }
 
 // ✅ RANDOM STRING GENERATE - CREATE
@@ -341,7 +378,7 @@ function openCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    leaderId: null,
+    leaderIds: [],
     randomString: ''
   }
   formError.value = ''
@@ -353,14 +390,14 @@ function closeCreateModal() {
   createForm.value = {
     name: '',
     dormId: dormitoryId,
-    leaderId: null,
+    leaderIds: [],
     randomString: ''
   }
   formError.value = ''
   showLeaderModal.value = false
 }
 
-// ✅ Create Floor - TO'G'RI PAYLOAD
+// ✅ Create Floor - leaderIds array yuboriladi
 async function createFloor() {
   formError.value = ''
 
@@ -380,8 +417,8 @@ async function createFloor() {
     const response = await axios.post('/api/floor/create', {
       name: createForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      leaderId: createForm.value.leaderId || null,
-      randString: createForm.value.randomString.trim()  // ← Backend randString kutadi
+      leaderIds: createForm.value.leaderIds.length > 0 ? createForm.value.leaderIds : null,
+      randString: createForm.value.randomString.trim()
     })
 
     closeCreateModal()
@@ -396,12 +433,17 @@ async function createFloor() {
 
 // Edit Floor
 function openEditModal(floor) {
+  // userDtos dan leaderIds ni extract qilish
+  const leaderIds = floor.userDtos && floor.userDtos.length > 0
+      ? floor.userDtos.map(user => user.id)
+      : []
+
   editForm.value = {
     id: floor.id,
     name: floor.name,
     dormId: dormitoryId,
-    leaderId: floor.leaderId || null,
-    randomString: floor.randString || ''  // ← Backend randString ni ol
+    leaderIds: leaderIds,
+    randomString: floor.randString || ''
   }
   formError.value = ''
   showEditModal.value = true
@@ -413,14 +455,14 @@ function closeEditModal() {
     id: 0,
     name: '',
     dormId: dormitoryId,
-    leaderId: null,
+    leaderIds: [],
     randomString: ''
   }
   formError.value = ''
   showLeaderModal.value = false
 }
 
-// ✅ Update Floor - TO'G'RI PAYLOAD
+// ✅ Update Floor - leaderIds array yuboriladi
 async function updateFloor() {
   formError.value = ''
 
@@ -436,8 +478,8 @@ async function updateFloor() {
       id: editForm.value.id,
       name: editForm.value.name.trim(),
       dormId: parseInt(dormitoryId),
-      leaderId: editForm.value.leaderId || null,
-      randString: editForm.value.randomString  // ← Backend randString kutadi
+      leaderIds: editForm.value.leaderIds.length > 0 ? editForm.value.leaderIds : null,
+      randString: editForm.value.randomString
     })
 
     closeEditModal()
@@ -553,16 +595,21 @@ onMounted(() => {
               </div>
 
               <div class="floor-body">
-                <!-- Leader Info -->
+                <!-- Leaders Info -->
                 <div class="floor-info-item">
-                  <span class="floor-label">Qavat sardori:</span>
-                  <span class="floor-value">
-                    <span v-if="floor.leaderFirstName || floor.leaderLastName">
-                      {{ floor.leaderLastName }} {{ floor.leaderFirstName }}
-                      <span v-if="floor.leaderMiddleName">{{ floor.leaderMiddleName }}</span>
-                    </span>
+                  <span class="floor-label">Qavat sardorlari:</span>
+                  <div class="floor-value">
+                    <div v-if="floor.userDtos && floor.userDtos.length > 0" class="leaders-list-display">
+                      <div v-for="(leader, index) in floor.userDtos" :key="leader.id" class="leader-display-item">
+                        <span class="leader-number">{{ index + 1 }}.</span>
+                        <span class="leader-full-name">
+                          {{ leader.lastName }} {{ leader.firstName }}
+                          <span v-if="leader.middleName">{{ leader.middleName }}</span>
+                        </span>
+                      </div>
+                    </div>
                     <span v-else class="no-data">Tayinlanmagan</span>
-                  </span>
+                  </div>
                 </div>
 
                 <!-- Rooms Count -->
@@ -627,17 +674,17 @@ onMounted(() => {
 
           <!-- Leader Tanlash -->
           <div class="form-group">
-            <label>Qavat Sardori</label>
+            <label>Qavat Sardorlari (ixtiyoriy, bir nechta tanlash mumkin)</label>
             <div class="leader-selector">
               <button
                   @click="openLeaderModalForCreate"
                   class="btn-select-leader"
               >
-                👤 {{ getSelectedLeaderName() }}
+                👥 {{ getSelectedLeadersNames() }}
               </button>
               <button
-                  v-if="createForm.leaderId"
-                  @click="clearLeader"
+                  v-if="createForm.leaderIds.length > 0"
+                  @click="clearAllLeaders"
                   class="btn-clear-leader"
               >
                 ✕
@@ -721,17 +768,17 @@ onMounted(() => {
 
           <!-- Leader Tanlash -->
           <div class="form-group">
-            <label>Qavat Sardori</label>
+            <label>Qavat Sardorlari (ixtiyoriy, bir nechta tanlash mumkin)</label>
             <div class="leader-selector">
               <button
                   @click="openLeaderModalForEdit"
                   class="btn-select-leader"
               >
-                👤 {{ getSelectedEditLeaderName() }}
+                👥 {{ getSelectedEditLeadersNames() }}
               </button>
               <button
-                  v-if="editForm.leaderId"
-                  @click="clearEditLeader"
+                  v-if="editForm.leaderIds.length > 0"
+                  @click="clearAllEditLeaders"
                   class="btn-clear-leader"
               >
                 ✕
@@ -795,10 +842,15 @@ onMounted(() => {
     <div v-if="showLeaderModal" class="modal-overlay" @click.self="showLeaderModal = false">
       <div class="modal leader-modal">
         <div class="modal-header">
-          <h2>👤 Sardor Tanlang</h2>
+          <h2>👥 Sardorlar Tanlang</h2>
           <button @click="showLeaderModal = false" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
+          <!-- Selected Count -->
+          <div class="selected-count">
+            <span>Tanlangan: <strong>{{ !editForm.id ? createForm.leaderIds.length : editForm.leaderIds.length }}</strong></span>
+          </div>
+
           <!-- Search Input -->
           <div class="leader-search">
             <!-- Create Modal uchun search input -->
@@ -847,7 +899,8 @@ onMounted(() => {
                 v-for="user in (!editForm.id ? leaders : editModalLeaders)"
                 :key="user.id"
                 class="leader-item"
-                @click="!editForm.id ? selectLeader(user) : selectEditLeader(user)"
+                :class="{ 'leader-selected': !editForm.id ? isLeaderSelected(user.id) : isEditLeaderSelected(user.id) }"
+                @click="!editForm.id ? toggleLeader(user) : toggleEditLeader(user)"
             >
               <div class="leader-info">
                 <span class="leader-name">
@@ -856,8 +909,17 @@ onMounted(() => {
                 </span>
                 <span class="leader-phone" v-if="user.phone">{{ user.phone }}</span>
               </div>
+              <div class="leader-checkbox">
+                <span v-if="!editForm.id ? isLeaderSelected(user.id) : isEditLeaderSelected(user.id)" class="checkmark">✓</span>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="showLeaderModal = false" class="btn-submit">
+            Tayyor
+          </button>
         </div>
       </div>
     </div>
@@ -1170,6 +1232,35 @@ onMounted(() => {
 .floor-value.no-data {
   color: #999;
   font-style: italic;
+}
+
+.leaders-list-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.leader-display-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.leader-number {
+  color: #667eea;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.leader-full-name {
+  color: #333;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .telegram-link-container {
@@ -1533,6 +1624,21 @@ onMounted(() => {
   background: #0284c7;
 }
 
+.selected-count {
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #0284c7;
+}
+
+.selected-count strong {
+  color: #0369a1;
+  font-size: 1.1rem;
+}
+
 .leader-search {
   display: flex;
   gap: 0.5rem;
@@ -1588,10 +1694,18 @@ onMounted(() => {
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .leader-item:hover {
   background: #f9f9f9;
+}
+
+.leader-item.leader-selected {
+  background: #eff6ff;
+  border-left: 4px solid #0ea5e9;
 }
 
 .leader-item:last-child {
@@ -1602,6 +1716,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .leader-name {
@@ -1612,6 +1727,28 @@ onMounted(() => {
 .leader-phone {
   font-size: 0.85rem;
   color: #999;
+}
+
+.leader-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.leader-selected .leader-checkbox {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+}
+
+.checkmark {
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
 .delete-warning {
