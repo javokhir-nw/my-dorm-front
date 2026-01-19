@@ -12,6 +12,7 @@
 # Node modules (to'g'ri format)
 node_modules/
 node_modules
+../node_modules
 .node_modules/
 
 # npm
