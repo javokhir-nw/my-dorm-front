@@ -17,7 +17,7 @@ function handleLogout() {
     <SideMenu />
 
     <div class="dashboard-header">
-      <h1 class="project-name">🏠 Mening yotoqxonam</h1>
+      <h1 class="project-name">Mening yotoqxonam</h1>
       <button @click="handleLogout" class="btn-logout">
         Chiqish
       </button>
@@ -25,7 +25,7 @@ function handleLogout() {
 
     <div class="dashboard-content">
       <div class="welcome-card">
-        <h2>Xush kelibsiz, {{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}! 👋</h2>
+        <h2>Xush kelibsiz, {{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}!</h2>
         <div class="user-info">
           <p><strong>Username:</strong> {{ authStore.currentUser?.username }}</p>
           <p v-if="authStore.currentUser?.middleName"><strong>Otasining ismi:</strong> {{ authStore.currentUser?.middleName }}</p>
@@ -35,7 +35,7 @@ function handleLogout() {
       </div>
 
       <div class="success-message">
-        ✅ Siz muvaffaqiyatli login qildingiz!
+        Siz muvaffaqiyatli login qildingiz!
       </div>
     </div>
   </div>

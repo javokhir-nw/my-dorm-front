@@ -58,7 +58,6 @@ function handleLogout() {
 
 <template>
   <div>
-    <!-- Hamburger Menu Button -->
     <button class="menu-button" @click="toggleMenu">
       <span class="hamburger-icon" :class="{ open: isMenuOpen }">
         <span></span>
@@ -70,7 +69,7 @@ function handleLogout() {
     <!-- Side Menu -->
     <div class="side-menu" :class="{ open: isMenuOpen }">
       <div class="menu-header">
-        <h3>🏠 Menu</h3>
+        <h3>Menu</h3>
         <button class="close-button" @click="toggleMenu">✕</button>
       </div>
 
@@ -81,22 +80,22 @@ function handleLogout() {
         </div>
 
         <button @click="goToDashboard" class="menu-item">
-          📊 Dashboard
+          Dashboard
         </button>
 
         <!-- Ma'lumotnoma Dropdown -->
         <div class="dropdown-wrapper">
           <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
-            <span>📚 Ma'lumotnoma</span>
+            <span>Ma'lumotnoma</span>
             <span class="arrow" :class="{ rotated: isMalumotnomaDrop }">▼</span>
           </button>
 
           <div v-show="isMalumotnomaDrop" class="dropdown-menu">
             <button @click="goToDormitories" class="dropdown-item">
-              🏢 Yotoqxonalar
+              Yotoqxonalar
             </button>
             <button @click="goToUsers" class="dropdown-item">
-              👥 Foydalanuvchilar
+              Foydalanuvchilar
             </button>
             <button @click="goToRoomTypes" class="dropdown-item">
               Xona turi
@@ -108,11 +107,11 @@ function handleLogout() {
         </div>
 
         <button @click="goToSettings" class="menu-item">
-          ⚙️ Sozlamalar
+          Sozlamalar
         </button>
 
         <button @click="handleLogout" class="menu-item logout">
-          🚪 Chiqish
+          Chiqish
         </button>
       </nav>
     </div>

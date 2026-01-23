@@ -143,14 +143,11 @@ function validateForm(form) {
   clearFormErrors()
   let isValid = true
 
-  // number va name majburiy emas, shuning uchun tekshirmaymiz
-
   if (!form.roomTypeId) {
     formErrors.value.roomTypeId = 'Xona turini tanlang!'
     isValid = false
   }
 
-  // Capacity validation only for bedroom (isRoom = true)
   if (form.isRoom) {
     if (!form.capacity || form.capacity < 1) {
       formErrors.value.capacity = 'Yotoq xonasi uchun sig\'imni kiriting!'
@@ -161,7 +158,6 @@ function validateForm(form) {
   return isValid
 }
 
-// Create Room
 async function openCreateModal() {
   createForm.value = {
     number: '',
@@ -199,17 +195,14 @@ async function createRoom() {
       isRoom: createForm.value.isRoom
     }
 
-    // Add number if provided
     if (createForm.value.number && createForm.value.number.trim()) {
       requestBody.number = createForm.value.number.trim()
     }
 
-    // Add name if provided
     if (createForm.value.name && createForm.value.name.trim()) {
       requestBody.name = createForm.value.name.trim()
     }
 
-    // Add capacity only if it's a bedroom
     if (createForm.value.isRoom && createForm.value.capacity) {
       requestBody.capacity = parseInt(createForm.value.capacity)
     }
@@ -226,7 +219,6 @@ async function createRoom() {
   }
 }
 
-// Edit Room
 async function openEditModal(room) {
   editForm.value = {
     id: room.id,
@@ -266,17 +258,14 @@ async function updateRoom() {
       isRoom: editForm.value.isRoom
     }
 
-    // Add number if provided
     if (editForm.value.number && editForm.value.number.trim()) {
       requestBody.number = editForm.value.number.trim()
     }
 
-    // Add name if provided
     if (editForm.value.name && editForm.value.name.trim()) {
       requestBody.name = editForm.value.name.trim()
     }
 
-    // Add capacity only if it's a bedroom
     if (editForm.value.isRoom && editForm.value.capacity) {
       requestBody.capacity = parseInt(editForm.value.capacity)
     }
@@ -293,7 +282,6 @@ async function updateRoom() {
   }
 }
 
-// Delete Room
 function openDeleteModal(id) {
   deleteId.value = id
   showDeleteModal.value = true
@@ -333,7 +321,7 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>🏢 Qavat ma'lumotlari</h1>
+        <h1>Qavat ma'lumotlari</h1>
       </div>
       <button v-if="floor" @click="openCreateModal" class="btn-create">+ Xona qo'shish</button>
     </div>
@@ -356,11 +344,9 @@ onMounted(() => {
         <!-- Main Info Card -->
         <div class="info-card">
           <div class="info-header">
-            <div class="info-icon">🏢</div>
             <div>
               <h2>{{ floor.name }}</h2>
               <p class="info-subtitle">{{ floor.dormitoryName }}</p>
-              <p class="info-id">ID: {{ floor.id }}</p>
             </div>
           </div>
 
@@ -383,55 +369,64 @@ onMounted(() => {
 
         <!-- Rooms List -->
         <div class="rooms-section">
-          <h3>Xonalar</h3>
+          <h3>Xonalar ro'yxati</h3>
 
-          <div v-if="floor.rooms && floor.rooms.length > 0" class="rooms-grid">
+          <div v-if="floor.rooms && floor.rooms.length > 0" class="rooms-list">
             <div
-                v-for="room in floor.rooms"
+                v-for="(room, index) in floor.rooms"
                 :key="room.id"
-                class="room-card"
+                class="room-list-item"
             >
-              <div class="room-header">
-                <div class="room-number">{{ room.number || room.name || 'Noma\'lum' }}</div>
+              <div class="room-list-number">{{ room.number || index + 1 }}</div>
+
+              <div class="room-list-content">
+                <div class="room-list-header">
+                  <h4 class="room-list-name">{{ room.name || 'Xona #' + (room.number || index + 1) }}</h4>
+                  <span class="room-list-capacity" v-if="room.capacity">{{ room.capacity }} kishi</span>
+                </div>
+
+                <div class="room-list-details">
+                  <div class="room-detail-row">
+                    <span class="detail-label">Xona turi:</span>
+                    <div class="detail-value">
+                      <span class="room-type-badge">{{ room.roomTypeName }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="room-body">
-                <div class="room-info-item" v-if="room.name">
-                  <span class="room-label">Nomi:</span>
-                  <span class="room-value">{{ room.name }}</span>
-                </div>
-
-                <div class="room-info-item" v-if="room.capacity">
-                  <span class="room-label">Sig'im:</span>
-                  <span class="room-value">{{ room.capacity }} kishi</span>
-                </div>
-
-                <!-- ✅ Turi: roomTypeName ko'rsatiladi -->
-                <div class="room-info-item">
-                  <span class="room-label">Turi:</span>
-                  <span class="room-value">{{ room.roomTypeName }}</span>
-                </div>
-
-                <!-- ✅ Yotoq xonasi yoki yo'qligini ko'rsatish -->
-<!--                <div class="room-info-item">
-                  <span class="room-label">Kategoriya:</span>
-                  <span class="room-value">
-                    <span v-if="room.isRoom" class="badge badge-bedroom">🛏️ Yotoq xonasi</span>
-                    <span v-else class="badge badge-other">🏢 Boshqa xona</span>
-                  </span>
-                </div>-->
-              </div>
-
-              <div class="room-footer">
-                <button @click="viewRoom(room.id)" class="btn-view-room">Ko'rish →</button>
-                <button @click.stop="openEditModal(room)" class="btn-edit-room">✏️</button>
-                <button @click.stop="openDeleteModal(room.id)" class="btn-delete-room">🗑️</button>
+              <div class="room-list-actions">
+                <button @click="viewRoom(room.id)" class="btn-action btn-view" title="Ko'rish">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <button @click.stop="openEditModal(room)" class="btn-action btn-edit" title="Tahrirlash">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+                <button @click.stop="openDeleteModal(room.id)" class="btn-action btn-delete" title="O'chirish">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
 
           <div v-else class="empty-rooms">
-            <div class="empty-icon">📭</div>
+            <div class="empty-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+            </div>
             <p>Bu qavatda xonalar mavjud emas</p>
             <button @click="openCreateModal" class="btn-add-first">+ Birinchi xonani qo'shish</button>
           </div>
@@ -443,7 +438,7 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal modal-large">
         <div class="modal-header">
-          <h2>🚪 Yangi Xona Qo'shish</h2>
+          <h2>➕ Yangi Xona Qo'shish</h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -623,7 +618,13 @@ onMounted(() => {
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
-          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            O'chirishni tasdiqlash
+          </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -649,8 +650,13 @@ onMounted(() => {
       <div class="modal modal-message">
         <div class="modal-body message-body">
           <div :class="['message-icon', `icon-${modalMessage.type}`]">
-            <span v-if="modalMessage.type === 'success'">✓</span>
-            <span v-else>✕</span>
+            <svg v-if="modalMessage.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </div>
           <h3 class="message-title">{{ modalMessage.title }}</h3>
           <p class="message-text">{{ modalMessage.text }}</p>
@@ -664,8 +670,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Previous styles remain the same... */
-
 .page-container {
   min-height: 100vh;
   background: #f5f7fa;
@@ -726,6 +730,7 @@ onMounted(() => {
 
 .btn-create:hover {
   background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 .page-content {
@@ -733,7 +738,6 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* Loading */
 .loading-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -760,7 +764,6 @@ onMounted(() => {
   }
 }
 
-/* Error */
 .error-card {
   background: white;
   padding: 2rem;
@@ -787,14 +790,12 @@ onMounted(() => {
   background: #5568d3;
 }
 
-/* Detail Content */
 .detail-content {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-/* Info Card */
 .info-card {
   background: white;
   border-radius: 12px;
@@ -806,13 +807,6 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.info-icon {
-  font-size: 3rem;
 }
 
 .info-header h2 {
@@ -821,15 +815,9 @@ onMounted(() => {
 }
 
 .info-subtitle {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   opacity: 0.9;
   font-size: 1rem;
-}
-
-.info-id {
-  margin: 0;
-  opacity: 0.8;
-  font-size: 0.9rem;
 }
 
 .info-body {
@@ -862,7 +850,6 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* Rooms Section */
 .rooms-section {
   background: white;
   padding: 2rem;
@@ -876,156 +863,186 @@ onMounted(() => {
   font-size: 1.5rem;
 }
 
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+/* ========== LIST VIEW STYLES ========== */
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.room-card {
+.room-list-item {
+  display: flex;
+  align-items: center;
   background: #f8f9fa;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  transition: all 0.3s;
   overflow: hidden;
+  transition: all 0.3s;
+  min-height: 70px;
 }
 
-.room-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.room-list-item:hover {
   border-color: #667eea;
+  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.15);
 }
 
-.room-header {
+.room-list-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  min-width: 55px;
+  margin-left: 1rem;
+  padding: 0.75rem;
+}
+
+.room-list-content {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.room-list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.room-number {
-  font-size: 1.8rem;
-  font-weight: 700;
-}
-
-.room-type-badge {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.room-body {
-  padding: 1.5rem;
-}
-
-.room-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-}
-
-.room-info-item:last-child {
-  margin-bottom: 0;
-}
-
-.room-label {
-  font-size: 0.85rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.room-value {
-  color: #333;
-  font-weight: 600;
-}
-
-/* Badge styles for isRoom */
-.badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.badge-bedroom {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.badge-other {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-
-.room-footer {
-  padding: 1rem 1.5rem;
-  background: white;
-  border-top: 1px solid #e0e0e0;
-  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.btn-view-room {
-  flex: 1;
-  padding: 0.75rem;
+.room-list-name {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.room-list-capacity {
   background: #667eea;
   color: white;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.room-list-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.room-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.room-type-badge {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #bfdbfe;
+}
+
+.room-list-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-left: 1px solid #e0e0e0;
+  min-width: auto;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-action {
+  padding: 0.6rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.btn-view-room:hover {
+.btn-action svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s;
+}
+
+.btn-action:hover svg {
+  transform: scale(1.1);
+}
+
+.btn-view {
+  background: #667eea;
+  color: white;
+}
+
+.btn-view:hover {
   background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.btn-edit-room {
-  padding: 0.75rem 1rem;
+.btn-edit {
   background: #f59e0b;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
-.btn-edit-room:hover {
+.btn-edit:hover {
   background: #d97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-.btn-delete-room {
-  padding: 0.75rem 1rem;
+.btn-delete {
   background: #ef4444;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
-.btn-delete-room:hover {
+.btn-delete:hover {
   background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-/* Empty State */
 .empty-rooms {
   text-align: center;
   padding: 3rem 2rem;
 }
 
 .empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  color: #ccc;
 }
 
 .empty-rooms p {
@@ -1100,6 +1117,8 @@ onMounted(() => {
   margin: 0;
   color: #333;
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .modal-close {
@@ -1136,11 +1155,12 @@ onMounted(() => {
 
 .form-input, .form-select {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  box-sizing: border-box;
 }
 
 .form-input:focus, .form-select:focus {
@@ -1150,6 +1170,11 @@ onMounted(() => {
 
 .form-input.input-error, .form-select.input-error {
   border-color: #ef4444;
+}
+
+.form-input::placeholder {
+  color: #999;
+  font-size: 0.95rem;
 }
 
 .form-select {
@@ -1281,7 +1306,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Success/Error Message Modal */
 .message-body {
   text-align: center;
   padding: 2rem 1.5rem;
@@ -1295,8 +1319,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
-  font-weight: bold;
 }
 
 .icon-success {
@@ -1338,6 +1360,7 @@ onMounted(() => {
   background: #5568d3;
 }
 
+/* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
@@ -1371,12 +1394,31 @@ onMounted(() => {
     gap: 0.5rem;
   }
 
-  .rooms-grid {
-    grid-template-columns: 1fr;
+  .room-list-item {
+    flex-direction: column;
   }
 
-  .room-footer {
-    flex-wrap: wrap;
+  .room-list-number {
+    min-width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .room-list-actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+    min-width: 100%;
+    justify-content: space-evenly;
+  }
+
+  .room-detail-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-label {
+    min-width: auto;
   }
 
   .modal {

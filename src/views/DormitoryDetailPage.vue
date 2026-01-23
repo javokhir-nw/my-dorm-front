@@ -532,7 +532,7 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>🏢 Yotoqxona ma'lumotlari</h1>
+        <h1>Yotoqxona ma'lumotlari</h1>
       </div>
       <button v-if="dormitory" @click="openCreateModal" class="btn-create">+ Qavat qo'shish</button>
     </div>
@@ -555,7 +555,6 @@ onMounted(() => {
         <!-- Main Info Card -->
         <div class="info-card">
           <div class="info-header">
-            <div class="info-icon">🏢</div>
             <div>
               <h2>{{ dormitory.name }}</h2>
             </div>
@@ -563,7 +562,7 @@ onMounted(() => {
 
           <div class="info-body">
             <div class="info-row">
-              <span class="info-label">Yotoqxona mudiri:</span>
+              <span class="info-label">Yotoqxona mudir(as)i:</span>
               <span class="info-value">
                 {{ dormitory.ownerFirstName }} {{ dormitory.ownerLastName }}
                 <span v-if="dormitory.ownerMiddleName">{{ dormitory.ownerMiddleName }}</span>
@@ -580,69 +579,76 @@ onMounted(() => {
         <!-- Floors List -->
         <div class="floors-section">
           <div class="floors-header">
-            <h3>Qavatlar</h3>
+            <h3>Qavatlar ro'yxati</h3>
           </div>
 
-          <div v-if="dormitory.floors && dormitory.floors.length > 0" class="floors-grid">
+          <div v-if="dormitory.floors && dormitory.floors.length > 0" class="floors-list">
             <div
-                v-for="floor in dormitory.floors"
+                v-for="(floor, index) in dormitory.floors"
                 :key="floor.id"
-                class="floor-card"
+                class="floor-list-item"
             >
-              <div class="floor-header">
-                <div class="floor-icon">🏢</div>
-                <h4>{{ floor.name }}</h4>
-              </div>
+              <div class="floor-list-number">{{ index + 1 }}</div>
 
-              <div class="floor-body">
-                <!-- Leaders Info -->
-                <div class="floor-info-item">
-                  <span class="floor-label">Qavat sardorlari:</span>
-                  <div class="floor-value">
-                    <div v-if="floor.userDtos && floor.userDtos.length > 0" class="leaders-list-display">
-                      <div v-for="(leader, index) in floor.userDtos" :key="leader.id" class="leader-display-item">
-                        <span class="leader-number">{{ index + 1 }}.</span>
-                        <span class="leader-full-name">
+              <div class="floor-list-content">
+                <div class="floor-list-header">
+                  <h4 class="floor-list-name">{{ floor.name }}</h4>
+                </div>
+
+                <div class="floor-list-details">
+                  <div class="floor-detail-row">
+                    <span class="detail-label">Qavat sardorlari:</span>
+                    <div class="detail-value">
+                      <div v-if="floor.userDtos && floor.userDtos.length > 0" class="leaders-inline">
+                        <span v-for="(leader, idx) in floor.userDtos" :key="leader.id" class="leader-badge">
                           {{ leader.lastName }} {{ leader.firstName }}
-                          <span v-if="leader.middleName">{{ leader.middleName }}</span>
                         </span>
                       </div>
+                      <span v-else class="no-data">Tayinlanmagan</span>
                     </div>
-                    <span v-else class="no-data">Tayinlanmagan</span>
                   </div>
-                </div>
 
-                <!-- Rooms Count -->
-                <div class="floor-info-item" v-if="floor.rooms !== null">
-                  <span class="floor-label">Xonalar:</span>
-                  <span class="floor-value">{{ floor.rooms?.length || 0 }} ta</span>
-                </div>
-
-                <!-- ✅ TELEGRAM LINK - LISTDA -->
-                <div class="floor-info-item" v-if="floor.randString">
-                  <span class="floor-label">Taklif havolasi:</span>
-                  <div class="telegram-link-container">
-                    <button
-                        @click="copyTelegramLink(floor.randString)"
-                        class="btn-copy-link"
-                        title="Taklif havolani nusxalash"
-                    >
-                      📋 Taklif havolasini nusxalash
-                    </button>
+                  <div class="floor-detail-row" v-if="floor.randString">
+                    <span class="detail-label">Taklif havolasi:</span>
+                    <div class="detail-value">
+                      <button
+                          @click="copyTelegramLink(floor.randString)"
+                          class="btn-copy-inline"
+                          title="Taklif havolani nusxalash"
+                      >
+                        📋 Nusxalash
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div class="floor-footer">
-                <button @click="viewFloor(floor.id)" class="btn-view-floor">Ko'rish →</button>
-                <button @click.stop="openEditModal(floor)" class="btn-edit-floor">✏️</button>
-                <button @click.stop="openDeleteModal(floor.id)" class="btn-delete-floor">🗑️</button>
+              <div class="floor-list-actions">
+                <button @click="viewFloor(floor.id)" class="btn-action btn-view" title="Ko'rish">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <button @click.stop="openEditModal(floor)" class="btn-action btn-edit" title="Tahrirlash">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+                <button @click.stop="openDeleteModal(floor.id)" class="btn-action btn-delete" title="O'chirish">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
 
           <div v-else class="empty-floors">
-            <div class="empty-icon">📭</div>
             <p>Bu yotoqxonada qavatlar mavjud emas</p>
             <button @click="openCreateModal" class="btn-add-first">+ Birinchi qavatni qo'shish</button>
           </div>
@@ -654,7 +660,7 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>🏢 Yangi Qavat Qo'shish</h2>
+          <h2>➕ Yangi Qavat Qo'shish</h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -710,7 +716,7 @@ onMounted(() => {
                   :disabled="generatingRandomString"
               >
                 <span v-if="generatingRandomString">⏳</span>
-                <span v-else>🔄 Yaratish</span>
+                <span v-else>🔗 Yaratish</span>
               </button>
             </div>
 
@@ -1111,10 +1117,6 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
-.info-icon {
-  font-size: 3rem;
-}
-
 .info-header h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.8rem;
@@ -1165,203 +1167,203 @@ onMounted(() => {
   font-size: 1.5rem;
 }
 
-.floors-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.floor-card {
-  background: #f8f9fa;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  transition: all 0.3s;
-  overflow: hidden;
-}
-
-.floor-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
-}
-
-.floor-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1.5rem;
+/* ========== LIST VIEW STYLES ========== */
+.floors-list {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 1rem;
 }
 
-.floor-icon {
-  font-size: 1.8rem;
+.floor-list-item {
+  display: flex;
+  align-items: stretch;
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
 }
 
-.floor-header h4 {
-  margin: 0;
-  font-size: 1.2rem;
+.floor-list-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.15);
 }
 
-.floor-body {
+.floor-list-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  min-width: 70px;
+  padding: 1.5rem 1rem;
+}
+
+.floor-list-content {
+  flex: 1;
   padding: 1.5rem;
-}
-
-.floor-info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
+  gap: 1rem;
 }
 
-.floor-info-item:last-child {
-  margin-bottom: 0;
+.floor-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.floor-label {
-  font-size: 0.85rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.floor-value {
+.floor-list-name {
+  margin: 0;
+  font-size: 1.3rem;
   color: #333;
+  font-weight: 700;
+}
+
+.floor-list-rooms {
+  background: #667eea;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
-.floor-value.no-data {
-  color: #999;
-  font-style: italic;
-}
-
-.leaders-list-display {
+.floor-list-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
 }
 
-.leader-display-item {
+.floor-detail-row {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 3px solid #667eea;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.leader-number {
-  color: #667eea;
-  font-weight: bold;
+.detail-label {
   font-size: 0.9rem;
-}
-
-.leader-full-name {
-  color: #333;
+  color: #666;
   font-weight: 500;
-  font-size: 0.9rem;
+  min-width: 140px;
+  flex-shrink: 0;
 }
 
-.telegram-link-container {
+.detail-value {
+  flex: 1;
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  margin-top: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.telegram-link {
-  background: #f0f0f0;
-  color: #333;
-  padding: 0.5rem;
+.leaders-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.leader-badge {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.85rem;
-  word-break: break-all;
-  flex: 1;
-  font-family: monospace;
-  min-width: 150px;
+  font-weight: 500;
+  border: 1px solid #bfdbfe;
 }
 
-.btn-copy-link {
-  padding: 0.5rem 1rem;
+.no-data {
+  color: #999;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.btn-copy-inline {
+  padding: 0.4rem 0.8rem;
   background: #0ea5e9;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.85rem;
-  white-space: nowrap;
   transition: all 0.3s;
 }
 
-.btn-copy-link:hover {
+.btn-copy-inline:hover {
   background: #0284c7;
 }
 
-.floor-footer {
-  padding: 1rem 1.5rem;
-  background: white;
-  border-top: 1px solid #e0e0e0;
+.floor-list-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: row;  /* ✅ column dan row ga */
+  gap: 0.5rem;  /* ✅ Gorizontal gap */
+  padding: 0.75rem 1rem;  /* ✅ Gorizontal padding */
+  background: white;
+  border-left: 1px solid #e0e0e0;
+  min-width: auto;  /* ✅ 60px emas, auto */
+  justify-content: center;
+  align-items: center;  /* ✅ Qo'shildi */
 }
 
-.btn-view-floor {
-  flex: 1;
-  padding: 0.75rem;
+.btn-action {
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;  /* ✅ Qo'shildi - tugmalar kichraymaydi */
+}
+
+.btn-action svg {
+  transition: transform 0.3s;
+}
+
+.btn-action:hover svg {
+  transform: scale(1.1);
+}
+
+.btn-view {
   background: #667eea;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
-.btn-view-floor:hover {
+.btn-view:hover {
   background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.btn-edit-floor {
-  padding: 0.75rem 1rem;
+.btn-edit {
   background: #f59e0b;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
-.btn-edit-floor:hover {
+.btn-edit:hover {
   background: #d97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-.btn-delete-floor {
-  padding: 0.75rem 1rem;
+.btn-delete {
   background: #ef4444;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
-.btn-delete-floor:hover {
+.btn-delete:hover {
   background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 .empty-floors {
   text-align: center;
   padding: 3rem 2rem;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
 }
 
 .empty-floors p {
@@ -1384,6 +1386,7 @@ onMounted(() => {
   background: #059669;
 }
 
+/* ========== MODAL STYLES ========== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1469,12 +1472,18 @@ onMounted(() => {
 
 .form-input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;  /* ✅ 0.75rem dan 1rem ga o'zgartiring */
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
   font-family: inherit;
+  box-sizing: border-box;  /* ✅ Qo'shing */
+}
+
+.form-input::placeholder {
+  color: #999;  /* ✅ Qo'shing - placeholder rangini o'zgartiradi */
+  font-size: 0.95rem;  /* ✅ Qo'shing - placeholder shriftini biroz kichiklashtiradi */
 }
 
 .form-input:focus {
@@ -1887,6 +1896,7 @@ onMounted(() => {
   background: #5568d3;
 }
 
+/* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
@@ -1920,12 +1930,32 @@ onMounted(() => {
     gap: 0.5rem;
   }
 
-  .floors-grid {
-    grid-template-columns: 1fr;
+  /* Mobile list view adjustments */
+  .floor-list-item {
+    flex-direction: column;
   }
 
-  .floor-footer {
-    flex-wrap: wrap;
+  .floor-list-number {
+    min-width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .floor-list-actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+    min-width: 100%;
+    justify-content: space-evenly;
+  }
+
+  .floor-detail-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-label {
+    min-width: auto;
   }
 
   .modal {
@@ -1938,18 +1968,6 @@ onMounted(() => {
 
   .btn-regenerate {
     width: 100%;
-  }
-
-  .telegram-link-container {
-    flex-direction: column;
-  }
-
-  .btn-copy-link {
-    width: 100%;
-  }
-
-  .link-preview {
-    margin-top: 1rem;
   }
 
   .telegram-link-preview {

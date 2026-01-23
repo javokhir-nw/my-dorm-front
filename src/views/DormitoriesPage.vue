@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
 const router = useRouter()
@@ -41,7 +41,7 @@ const deleteId = ref(null)
 const modalMessage = ref({
   title: '',
   text: '',
-  type: 'success' // success or error
+  type: 'success'
 })
 
 // Loading states for modals
@@ -56,7 +56,6 @@ function goBack() {
   router.push('/dashboard')
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchDormitories() {
   loading.value = true
   error.value = ''
@@ -139,7 +138,6 @@ function closeCreateModal() {
   formError.value = ''
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createDormitory() {
   formError.value = ''
 
@@ -180,7 +178,6 @@ function closeEditModal() {
   formError.value = ''
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateDormitory() {
   formError.value = ''
 
@@ -218,7 +215,6 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteDormitory() {
   deleteLoading.value = true
 
@@ -248,7 +244,7 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>🏢 Yotoqxonalar</h1>
+        <h1>Yotoqxonalar</h1>
       </div>
       <button @click="openCreateModal" class="btn-create">+ Yangi qo'shish</button>
     </div>
@@ -264,7 +260,11 @@ onMounted(() => {
             class="search-input"
         />
         <button @click="handleSearch" class="btn-search" :disabled="loading">
-          🔍 Qidirish
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Qidirish
         </button>
         <button
             v-if="searchQuery"
@@ -272,7 +272,10 @@ onMounted(() => {
             class="btn-clear"
             :disabled="loading"
         >
-          ✕
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
     </div>
@@ -292,7 +295,12 @@ onMounted(() => {
 
       <!-- Empty State -->
       <div v-else-if="dormitories.length === 0" class="empty-state">
-        <div class="empty-icon">🏢</div>
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
         <h3>Yotoqxonalar topilmadi</h3>
         <p v-if="searchQuery">
           "{{ searchQuery }}" bo'yicha natija topilmadi
@@ -302,45 +310,54 @@ onMounted(() => {
 
       <!-- Dormitories List -->
       <div v-else>
-        <div class="dormitories-grid">
+        <div class="dormitories-list">
           <div
-              v-for="dorm in dormitories"
+              v-for="(dorm, index) in dormitories"
               :key="dorm.id"
-              class="dormitory-card"
+              class="dorm-list-item"
           >
-            <div class="card-header">
-              <div class="card-icon">🏢</div>
-              <h3 class="dormitory-name">O'zbekiston Xalqaro Islomshunoslik akademiyasi</h3>
-            </div>
+            <div class="dorm-list-number">{{ (currentPage - 1) * pageSize + index + 1 }}</div>
 
-            <div class="card-body">
-              <h3 class="dormitory-name">{{ dorm.name }}</h3>
+            <div class="dorm-list-content">
+              <div class="dorm-list-header">
+                <h4 class="dorm-list-name">{{ dorm.name }}</h4>
+                <span class="dorm-list-floors" v-if="dorm.floors">{{ dorm.floors }} ta qavat</span>
+              </div>
 
-              <div class="dormitory-info">
-                <div class="info-item" v-if="dorm.ownerFirstName || dorm.ownerLastName">
-                  <span class="info-label">Yotoqxona Mudiri:</span>
-                  <span class="info-value">
-                    {{ dorm.ownerFirstName }} {{ dorm.ownerLastName }}
-                    <span v-if="dorm.ownerMiddleName">{{ dorm.ownerMiddleName }}</span>
-                  </span>
-                </div>
-
-                <div class="info-item" v-else>
-                  <span class="info-label">Owner ID:</span>
-                  <span class="info-value">{{ dorm.ownerId }}</span>
-                </div>
-
-                <div class="info-item" v-if="dorm.floors">
-                  <span class="info-label">Qavatlar:</span>
-                  <span class="info-value">{{ dorm.floors }}</span>
+              <div class="dorm-list-details">
+                <div class="dorm-detail-row" v-if="dorm.ownerFirstName || dorm.ownerLastName">
+                  <span class="detail-label">Yotoqxona Mudir(as)i:</span>
+                  <div class="detail-value">
+                    <span class="manager-badge">
+                      {{ dorm.ownerFirstName }} {{ dorm.ownerLastName }}
+                      <span v-if="dorm.ownerMiddleName">{{ dorm.ownerMiddleName }}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="card-footer">
-              <button @click="viewDormitory(dorm.id)" class="btn-view">Ko'rish →</button>
-              <button @click.stop="openEditModal(dorm)" class="btn-edit">✏️ Tahrirlash</button>
-              <button @click.stop="openDeleteModal(dorm.id)" class="btn-delete">🗑️ O'chirish</button>
+            <div class="dorm-list-actions">
+              <button @click="viewDormitory(dorm.id)" class="btn-action btn-view" title="Ko'rish">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+              <button @click.stop="openEditModal(dorm)" class="btn-action btn-edit" title="Tahrirlash">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button @click.stop="openDeleteModal(dorm.id)" class="btn-action btn-delete" title="O'chirish">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -352,7 +369,10 @@ onMounted(() => {
               :disabled="currentPage === 1"
               class="pagination-btn"
           >
-            ← Oldingi
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Oldingi
           </button>
 
           <div class="pagination-numbers">
@@ -371,7 +391,10 @@ onMounted(() => {
               :disabled="currentPage === totalPages"
               class="pagination-btn"
           >
-            Keyingi →
+            Keyingi
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
           </button>
         </div>
       </div>
@@ -381,7 +404,7 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>🏢 Yangi Yotoqxona Qo'shish</h2>
+          <h2>➕ Yangi Yotoqxona Qo'shish</h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -449,7 +472,13 @@ onMounted(() => {
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
-          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            O'chirishni tasdiqlash
+          </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -475,8 +504,13 @@ onMounted(() => {
       <div class="modal modal-message">
         <div class="modal-body message-body">
           <div :class="['message-icon', `icon-${modalMessage.type}`]">
-            <span v-if="modalMessage.type === 'success'">✓</span>
-            <span v-else>✕</span>
+            <svg v-if="modalMessage.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </div>
           <h3 class="message-title">{{ modalMessage.title }}</h3>
           <p class="message-text">{{ modalMessage.text }}</p>
@@ -550,6 +584,7 @@ onMounted(() => {
 
 .btn-create:hover {
   background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 /* Search Bar */
@@ -590,10 +625,14 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-search:hover:not(:disabled) {
   background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-search:disabled {
@@ -603,17 +642,20 @@ onMounted(() => {
 
 .btn-clear {
   padding: 0.75rem 1rem;
-  background: #ff4757;
+  background: #ef4444;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-clear:hover:not(:disabled) {
-  background: #ff3838;
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 .btn-clear:disabled {
@@ -685,8 +727,8 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  color: #ccc;
 }
 
 .empty-state h3 {
@@ -698,125 +740,176 @@ onMounted(() => {
   color: #666;
 }
 
-/* Dormitories Grid */
-.dormitories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
+/* ========== LIST VIEW STYLES - KICHIKROQ BALANDLIK ========== */
+.dormitories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;  /* ✅ 1rem dan 0.75rem ga */
   margin-bottom: 2rem;
 }
 
-.dormitory-card {
+.dorm-list-item {
+  display: flex;
+  align-items: stretch;
   background: white;
+  border: 2px solid #e0e0e0;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
   overflow: hidden;
+  transition: all 0.3s;
+  min-height: 70px;  /* ✅ Qo'shildi - minimal balandlik */
 }
 
-.dormitory-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+.dorm-list-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.15);
 }
 
-.card-header {
+.dorm-list-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.5rem;
+  color: white;
+  font-size: 1.2rem;  /* ✅ 1.5rem dan 1.2rem ga */
+  font-weight: bold;
+  min-width: 55px;  /* ✅ 70px dan 55px ga */
+  padding: 0.75rem;  /* ✅ 1.5rem 1rem dan 0.75rem ga */
+}
+
+.dorm-list-content {
+  flex: 1;
+  padding: 0.75rem 1rem;  /* ✅ Vertical kichikroq */
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;  /* ✅ 1rem dan 0.5rem ga */
+}
+
+.dorm-list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
-}
-
-.card-icon {
-  font-size: 2rem;
-  margin-right: 7px;
-}
-
-.card-body {
-  padding: 1.5rem;
-}
-
-.dormitory-name {
-  color: #333;
-  margin: 0 0 1rem 0;
-  font-size: 1.2rem;
-}
-
-.dormitory-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.info-label {
-  font-size: 0.85rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.info-value {
-  color: #333;
-  font-weight: 600;
-}
-
-.card-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.btn-view {
-  flex: 1;
-  padding: 0.75rem;
+.dorm-list-name {
+  margin: 0;
+  font-size: 1.1rem;  /* ✅ 1.3rem dan 1.1rem ga */
+  color: #333;
+  font-weight: 700;
+  line-height: 1.2;  /* ✅ Qo'shildi */
+}
+
+.dorm-list-floors {
   background: #667eea;
   color: white;
+  padding: 0.3rem 0.7rem;  /* ✅ 0.4rem 0.8rem dan kichikroq */
+  border-radius: 20px;
+  font-size: 0.8rem;  /* ✅ 0.85rem dan 0.8rem ga */
+  font-weight: 600;
+}
+
+.dorm-list-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;  /* ✅ 0.75rem dan 0.5rem ga */
+}
+
+.dorm-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;  /* ✅ 1rem dan 0.75rem ga */
+}
+
+.detail-label {
+  font-size: 0.85rem;  /* ✅ 0.9rem dan 0.85rem ga */
+  color: #666;
+  font-weight: 500;
+  min-width: 120px;  /* ✅ 140px dan 120px ga */
+  flex-shrink: 0;
+}
+
+.detail-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.manager-badge {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 0.3rem 0.7rem;  /* ✅ 0.4rem 0.8rem dan kichikroq */
+  border-radius: 6px;
+  font-size: 0.8rem;  /* ✅ 0.85rem dan 0.8rem ga */
+  font-weight: 500;
+  border: 1px solid #bfdbfe;
+}
+
+.dorm-list-actions {
+  display: flex;
+  flex-direction: row;  /* ✅ column dan row ga */
+  gap: 0.5rem;  /* ✅ Gorizontal gap */
+  padding: 0.75rem 1rem;  /* ✅ Gorizontal padding */
+  background: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  min-width: auto;  /* ✅ 50px emas, auto */
+  justify-content: center;
+  align-items: center;  /* ✅ Qo'shildi */
+}
+
+.btn-action {
+  padding: 0.6rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;  /* ✅ Qo'shildi - kichraymaslik uchun */
+}
+
+.btn-action svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s;
+}
+
+.btn-action:hover svg {
+  transform: scale(1.1);
+}
+
+.btn-view {
+  background: #667eea;
+  color: white;
 }
 
 .btn-view:hover {
   background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-edit {
-  padding: 0.75rem 1rem;
   background: #f59e0b;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
 .btn-edit:hover {
   background: #d97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
 .btn-delete {
-  padding: 0.75rem 1rem;
   background: #ef4444;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
 }
 
 .btn-delete:hover {
   background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 /* Pagination */
@@ -841,10 +934,14 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .pagination-btn:hover:not(:disabled) {
   background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .pagination-btn:disabled {
@@ -920,6 +1017,8 @@ onMounted(() => {
   margin: 0;
   color: #333;
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .modal-close {
@@ -952,11 +1051,12 @@ onMounted(() => {
 
 .form-input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -966,6 +1066,11 @@ onMounted(() => {
 
 .form-input.input-error {
   border-color: #ef4444;
+}
+
+.form-input::placeholder {
+  color: #999;
+  font-size: 0.95rem;
 }
 
 .error-message {
@@ -1064,8 +1169,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
-  font-weight: bold;
 }
 
 .icon-success {
@@ -1107,6 +1210,7 @@ onMounted(() => {
   background: #5568d3;
 }
 
+/* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
@@ -1134,12 +1238,32 @@ onMounted(() => {
     flex-direction: column;
   }
 
-  .dormitories-grid {
-    grid-template-columns: 1fr;
+  /* Mobile list view adjustments */
+  .dorm-list-item {
+    flex-direction: column;
   }
 
-  .card-footer {
+  .dorm-list-number {
+    min-width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .dorm-list-actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+    min-width: 100%;
+    justify-content: space-evenly;
+  }
+
+  .dorm-detail-row {
     flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-label {
+    min-width: auto;
   }
 
   .pagination {

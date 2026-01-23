@@ -72,11 +72,11 @@ function handleLogout() {
 
     <!-- Main Content -->
     <div class="hero">
-      <h1 class="project-name">🏠 Mening yotoqxonam</h1>
+      <h1 class="project-name">Mening yotoqxonam</h1>
       <p class="tagline">Yotoqxona boshqaruv tizimi</p>
 
       <div v-if="authStore.isAuthenticated" class="logged-in">
-        <p>Salom, {{ authStore.currentUser?.firstName }}! 👋</p>
+        <p>Salom, {{ authStore.currentUser?.firstName }}!</p>
         <button @click="goToDashboard" class="btn btn-primary">
           Dashboard ga o'tish
         </button>

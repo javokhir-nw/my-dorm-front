@@ -40,7 +40,7 @@ async function handleLogin() {
   <div class="auth-container">
     <div class="auth-card">
       <div class="logo">
-        <h1 class="project-name">🏠 Mening yotoqxonam</h1>
+        <h1 class="project-name">Mening yotoqxonam</h1>
       </div>
 
       <h2>Kirish</h2>
