@@ -179,7 +179,18 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>📋 Davomat</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+              <path d="M16 2v4"></path>
+              <path d="M8 2v4"></path>
+              <path d="M3 10h18"></path>
+              <path d="M9 16l2 2 4-4"></path>
+            </svg>
+          </span>
+          <h1>Davomat</h1>
+        </div>
       </div>
     </div>
 
@@ -194,7 +205,11 @@ onMounted(() => {
             class="search-input"
         />
         <button @click="handleSearch" class="btn-search" :disabled="loading">
-          🔍 Qidirish
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Qidirish
         </button>
         <button
             v-if="searchQuery"
@@ -202,7 +217,10 @@ onMounted(() => {
             class="btn-clear"
             :disabled="loading"
         >
-          ✕
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
@@ -275,7 +293,15 @@ onMounted(() => {
 
       <!-- Empty State -->
       <div v-else-if="attendances.length === 0" class="empty-state">
-        <div class="empty-icon">📋</div>
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+            <path d="M16 2v4"></path>
+            <path d="M8 2v4"></path>
+            <path d="M3 10h18"></path>
+            <path d="M9 16l2 2 4-4"></path>
+          </svg>
+        </div>
         <h3>Davomat ma'lumotlari topilmadi</h3>
         <p v-if="searchQuery || filterDormId || filterFloorId || selectedDate !== getTodayDate()">
           Filter bo'yicha natija topilmadi
@@ -430,6 +456,9 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-search:hover:not(:disabled) {
@@ -629,9 +658,21 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.empty-icon svg {
+  width: 34px;
+  height: 34px;
 }
 
 .empty-state h3 {

@@ -656,7 +656,17 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>👥 Foydalanuvchilar</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M17 11a4 4 0 1 0-8 0"></path>
+              <path d="M3 21a6 6 0 0 1 12 0"></path>
+              <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+            </svg>
+          </span>
+          <h1>Foydalanuvchilar</h1>
+        </div>
       </div>
       <button @click="openCreateModal" class="btn-create">+ Yangi qo'shish</button>
     </div>
@@ -672,7 +682,11 @@ onMounted(() => {
             class="search-input"
         />
         <button @click="handleSearch" class="btn-search" :disabled="loading">
-          🔍 Qidirish
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Qidirish
         </button>
         <button
             v-if="searchQuery"
@@ -680,7 +694,10 @@ onMounted(() => {
             class="btn-clear"
             :disabled="loading"
         >
-          ✕
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
@@ -761,7 +778,14 @@ onMounted(() => {
 
       <!-- Empty State -->
       <div v-else-if="users.length === 0" class="empty-state">
-        <div class="empty-icon">👥</div>
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M17 11a4 4 0 1 0-8 0"></path>
+            <path d="M3 21a6 6 0 0 1 12 0"></path>
+            <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+          </svg>
+        </div>
         <h3>Foydalanuvchilar topilmadi</h3>
         <p v-if="hasSearch">
           Filter bo'yicha natija topilmadi
@@ -804,8 +828,21 @@ onMounted(() => {
             <td>{{ user.floorNumber || '-' }}</td>
             <td>{{ user.roomNumber || '-' }}</td>
             <td class="actions-cell">
-              <button @click="openEditModal(user)" class="btn-edit">✏️</button>
-              <button @click="openDeleteModal(user.id)" class="btn-delete">🗑️</button>
+              <button @click="openEditModal(user)" class="btn-edit" aria-label="Tahrirlash">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+              </button>
+              <button @click="openDeleteModal(user.id)" class="btn-delete" aria-label="O'chirish">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M8 6V4h8v2"></path>
+                  <path d="M19 6l-1 14H6L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                </svg>
+              </button>
             </td>
           </tr>
           </tbody>
@@ -1012,7 +1049,15 @@ onMounted(() => {
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-xlarge">
         <div class="modal-header">
-          <h2>✏️ Foydalanuvchini Tahrirlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Foydalanuvchini tahrirlash
+          </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -1174,7 +1219,18 @@ onMounted(() => {
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
-          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
+            O'chirishni tasdiqlash
+          </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -1315,6 +1371,9 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-search:hover:not(:disabled) {
@@ -1481,8 +1540,20 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #f1f5ff;
+  color: #667eea;
+}
+
+.empty-icon svg {
+  width: 36px;
+  height: 36px;
 }
 
 .empty-state h3 {
@@ -1562,6 +1633,14 @@ onMounted(() => {
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-edit svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-edit:hover {
@@ -1577,6 +1656,14 @@ onMounted(() => {
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-delete:hover {
@@ -1689,6 +1776,28 @@ onMounted(() => {
   margin: 0;
   color: #333;
   font-size: 1.5rem;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.modal-title-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .modal-close {

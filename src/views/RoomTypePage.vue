@@ -223,7 +223,17 @@ onMounted(() => {
 
     <div class="page-header">
       <div class="header-left">
-        <h1>🏷️ Xona Turlari</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h18"></path>
+              <path d="M5 12V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v5"></path>
+              <path d="M4 20h16"></path>
+              <path d="M7 20v-5h10v5"></path>
+            </svg>
+          </span>
+          <h1>Xona turlari</h1>
+        </div>
       </div>
       <button @click="openCreateModal" class="btn-create">+ Xona turi qo'shish</button>
     </div>
@@ -250,7 +260,12 @@ onMounted(() => {
               class="room-type-item"
           >
             <div class="room-type-info">
-              <div class="room-type-icon">🏷️</div>
+              <div class="room-type-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41 11 3H4v7l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82Z"></path>
+                  <circle cx="7.5" cy="7.5" r="1.5"></circle>
+                </svg>
+              </div>
               <div class="room-type-details">
                 <h3 class="room-type-name">{{ roomType.name }}</h3>
                 <p class="room-type-id">ID: {{ roomType.id }}</p>
@@ -259,10 +274,21 @@ onMounted(() => {
 
             <div class="room-type-actions">
               <button @click="openEditModal(roomType)" class="btn-edit" title="Tahrirlash">
-                ✏️ Tahrirlash
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                Tahrirlash
               </button>
               <button @click="openDeleteModal(roomType.id)" class="btn-delete" title="O'chirish">
-                🗑️ O'chirish
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M8 6V4h8v2"></path>
+                  <path d="M19 6l-1 14H6L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                </svg>
+                O'chirish
               </button>
             </div>
           </div>
@@ -270,7 +296,12 @@ onMounted(() => {
 
         <!-- Empty State -->
         <div v-else class="empty-state">
-          <div class="empty-icon">📭</div>
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16v12H4z"></path>
+              <path d="m22 8-10 6L2 8"></path>
+            </svg>
+          </div>
           <h3>Xona turlari mavjud emas</h3>
           <p>Birinchi xona turini qo'shish uchun yuqoridagi tugmani bosing</p>
           <button @click="openCreateModal" class="btn-add-first">+ Birinchi xona turini qo'shish</button>
@@ -282,7 +313,15 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal modal-medium">
         <div class="modal-header">
-          <h2>🏷️ Yangi Xona Turi Qo'shish</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41 11 3H4v7l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82Z"></path>
+                <circle cx="7.5" cy="7.5" r="1.5"></circle>
+              </svg>
+            </span>
+            Yangi Xona Turi Qo'shish
+          </h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -315,7 +354,15 @@ onMounted(() => {
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-medium">
         <div class="modal-header">
-          <h2>✏️ Xona Turini Tahrirlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Xona turini tahrirlash
+          </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -348,7 +395,18 @@ onMounted(() => {
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
-          <h2>🗑️ O'chirishni tasdiqlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
+            O'chirishni tasdiqlash
+          </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -539,15 +597,20 @@ onMounted(() => {
 }
 
 .room-type-icon {
-  font-size: 2.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #667eea;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+}
+
+.room-type-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .room-type-details {
@@ -587,6 +650,12 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
+.btn-edit svg,
+.btn-delete svg {
+  width: 16px;
+  height: 16px;
+}
+
 .btn-edit {
   background: #f59e0b;
   color: white;
@@ -616,9 +685,21 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #f1f5ff;
+  color: #667eea;
+}
+
+.empty-icon svg {
+  width: 34px;
+  height: 34px;
 }
 
 .empty-state h3 {
@@ -716,6 +797,28 @@ onMounted(() => {
   color: #333;
   font-size: 1.5rem;
   font-weight: 700;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.modal-title-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .modal-close {
