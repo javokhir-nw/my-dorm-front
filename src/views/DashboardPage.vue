@@ -17,7 +17,17 @@ function handleLogout() {
     <SideMenu />
 
     <div class="dashboard-header">
-      <h1 class="project-name">Mening yotoqxonam</h1>
+      <div class="page-title">
+        <span class="page-title__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          </svg>
+        </span>
+        <h1 class="project-name">Mening yotoqxonam</h1>
+      </div>
       <button @click="handleLogout" class="btn-logout">
         Chiqish
       </button>

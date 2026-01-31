@@ -321,7 +321,18 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>Qavat ma'lumotlari</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16"></path>
+              <path d="M4 12h16"></path>
+              <path d="M4 20h16"></path>
+              <path d="M8 4v16"></path>
+              <path d="M16 4v16"></path>
+            </svg>
+          </span>
+          <h1>Qavat ma'lumotlari</h1>
+        </div>
       </div>
       <button v-if="floor" @click="openCreateModal" class="btn-create">+ Xona qo'shish</button>
     </div>
@@ -438,7 +449,16 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal modal-large">
         <div class="modal-header">
-          <h2>➕ Yangi Xona Qo'shish</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8v8"></path>
+                <path d="M8 12h8"></path>
+              </svg>
+            </span>
+            Yangi xona qo'shish
+          </h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -528,7 +548,15 @@ onMounted(() => {
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal modal-large">
         <div class="modal-header">
-          <h2>✏️ Xonani Tahrirlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Xonani tahrirlash
+          </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -1119,6 +1147,26 @@ onMounted(() => {
   font-size: 1.5rem;
   display: flex;
   align-items: center;
+}
+
+.modal-title {
+  gap: 0.6rem;
+}
+
+.modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.modal-title-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .modal-close {
