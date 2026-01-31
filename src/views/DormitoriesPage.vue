@@ -244,7 +244,17 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>Yotoqxonalar</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10h18"></path>
+              <path d="M5 10V5h14v5"></path>
+              <path d="M4 10v9h16v-9"></path>
+              <path d="M9 19v-5h6v5"></path>
+            </svg>
+          </span>
+          <h1>Yotoqxonalar</h1>
+        </div>
       </div>
       <button @click="openCreateModal" class="btn-create">+ Yangi qo'shish</button>
     </div>
@@ -404,7 +414,16 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>➕ Yangi Yotoqxona Qo'shish</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8v8"></path>
+                <path d="M8 12h8"></path>
+              </svg>
+            </span>
+            Yangi yotoqxona qo'shish
+          </h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -438,7 +457,15 @@ onMounted(() => {
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>✏️ Yotoqxonani Tahrirlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Yotoqxonani tahrirlash
+          </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -472,11 +499,16 @@ onMounted(() => {
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal modal-small">
         <div class="modal-header">
-          <h2>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
             O'chirishni tasdiqlash
           </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
@@ -1019,6 +1051,26 @@ onMounted(() => {
   font-size: 1.5rem;
   display: flex;
   align-items: center;
+}
+
+.modal-title {
+  gap: 0.6rem;
+}
+
+.modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.modal-title-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .modal-close {

@@ -69,7 +69,16 @@ function handleLogout() {
     <!-- Side Menu -->
     <div class="side-menu" :class="{ open: isMenuOpen }">
       <div class="menu-header">
-        <h3>Menu</h3>
+        <div class="menu-title">
+          <span class="menu-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10.5L12 3l9 7.5"></path>
+              <path d="M5 10v10h14V10"></path>
+              <path d="M9 20v-6h6v6"></path>
+            </svg>
+          </span>
+          <h3>Menu</h3>
+        </div>
         <button class="close-button" @click="toggleMenu">✕</button>
       </div>
 
@@ -80,37 +89,99 @@ function handleLogout() {
         </div>
 
         <button @click="goToDashboard" class="menu-item">
+          <span class="menu-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+            </svg>
+          </span>
           Dashboard
         </button>
 
         <!-- Ma'lumotnoma Dropdown -->
         <div class="dropdown-wrapper">
           <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
-            <span>Ma'lumotnoma</span>
+            <span class="menu-item__label">
+              <span class="menu-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 6h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 18h10"></path>
+                </svg>
+              </span>
+              <span>Ma'lumotnoma</span>
+            </span>
             <span class="arrow" :class="{ rotated: isMalumotnomaDrop }">▼</span>
           </button>
 
           <div v-show="isMalumotnomaDrop" class="dropdown-menu">
             <button @click="goToDormitories" class="dropdown-item">
+              <span class="menu-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 10h18"></path>
+                  <path d="M5 10V5h14v5"></path>
+                  <path d="M4 10v9h16v-9"></path>
+                  <path d="M9 19v-5h6v5"></path>
+                </svg>
+              </span>
               Yotoqxonalar
             </button>
             <button @click="goToUsers" class="dropdown-item">
+              <span class="menu-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 11a4 4 0 1 0-8 0"></path>
+                  <path d="M4 20a8 8 0 0 1 16 0"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
               Foydalanuvchilar
             </button>
             <button @click="goToRoomTypes" class="dropdown-item">
+              <span class="menu-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12h18"></path>
+                  <path d="M5 12V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v5"></path>
+                  <path d="M4 20h16"></path>
+                  <path d="M7 20v-5h10v5"></path>
+                </svg>
+              </span>
               Xona turi
             </button>
             <button @click="goToAttendance" class="dropdown-item">
+              <span class="menu-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                  <path d="M16 2v4"></path>
+                  <path d="M8 2v4"></path>
+                  <path d="M3 10h18"></path>
+                  <path d="M9 16l2 2 4-4"></path>
+                </svg>
+              </span>
               Davomat
             </button>
           </div>
         </div>
 
         <button @click="goToSettings" class="menu-item">
+          <span class="menu-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.31-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06c.46.46 1.13.6 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09c0 .7.4 1.31 1 1.51.68.27 1.36.13 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.46.46-.6 1.13-.33 1.82V9c.2.6.81 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.7 0-1.31.4-1.51 1Z"></path>
+            </svg>
+          </span>
           Sozlamalar
         </button>
 
         <button @click="handleLogout" class="menu-item logout">
+          <span class="menu-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <path d="M16 17l5-5-5-5"></path>
+              <path d="M21 12H9"></path>
+            </svg>
+          </span>
           Chiqish
         </button>
       </nav>
@@ -203,6 +274,27 @@ function handleLogout() {
   color: white;
 }
 
+.menu-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.menu-title__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-title__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .menu-header h3 {
   margin: 0;
   font-size: 1.5rem;
@@ -267,6 +359,30 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.menu-item__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.menu-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+}
+
+.menu-item.logout .menu-icon {
+  color: currentColor;
+}
+
+.menu-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .menu-item:hover {

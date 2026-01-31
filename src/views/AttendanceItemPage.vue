@@ -139,7 +139,18 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>📋 Davomat tafsilotlari</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+              <path d="M16 2v4"></path>
+              <path d="M8 2v4"></path>
+              <path d="M3 10h18"></path>
+              <path d="M9 16l2 2 4-4"></path>
+            </svg>
+          </span>
+          <h1>Davomat tafsilotlari</h1>
+        </div>
       </div>
     </div>
 
@@ -161,10 +172,26 @@ onMounted(() => {
         <!-- Info Card -->
         <div class="info-card">
           <div class="info-header">
-            <div class="info-icon">📋</div>
+            <div class="info-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                <path d="M16 2v4"></path>
+                <path d="M8 2v4"></path>
+                <path d="M3 10h18"></path>
+                <path d="M9 16l2 2 4-4"></path>
+              </svg>
+            </div>
             <div class="info-details">
               <h2>{{ attendance.dormName }} - {{ attendance.floorName }}</h2>
-              <p class="info-date">📅 {{ attendance.createdDate }}</p>
+              <p class="info-date">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                  <path d="M16 2v4"></path>
+                  <path d="M8 2v4"></path>
+                  <path d="M3 10h18"></path>
+                </svg>
+                {{ attendance.createdDate }}
+              </p>
               <p class="info-id">ID: {{ attendance.id }}</p>
             </div>
           </div>
@@ -172,7 +199,14 @@ onMounted(() => {
           <!-- Statistics -->
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-icon">👥</div>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M17 11a4 4 0 1 0-8 0"></path>
+                  <path d="M3 21a6 6 0 0 1 12 0"></path>
+                  <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+                </svg>
+              </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.total }}</div>
                 <div class="stat-label">Jami</div>
@@ -180,7 +214,11 @@ onMounted(() => {
             </div>
 
             <div class="stat-card success">
-              <div class="stat-icon">✅</div>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12l4 4L19 6"></path>
+                </svg>
+              </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.attended }}</div>
                 <div class="stat-label">Qatnashdi</div>
@@ -188,7 +226,12 @@ onMounted(() => {
             </div>
 
             <div class="stat-card danger">
-              <div class="stat-icon">❌</div>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6L6 18"></path>
+                  <path d="M6 6l12 12"></path>
+                </svg>
+              </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.notAttended }}</div>
                 <div class="stat-label">Qatnashmadi</div>
@@ -196,7 +239,12 @@ onMounted(() => {
             </div>
 
             <div class="stat-card info">
-              <div class="stat-icon">📊</div>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 3v18h18"></path>
+                  <path d="M7 15l4-4 4 3 5-6"></path>
+                </svg>
+              </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.attendanceRate }}%</div>
                 <div class="stat-label">Davomat foizi</div>
@@ -212,14 +260,14 @@ onMounted(() => {
               <input
                   v-model="searchQuery"
                   type="text"
-                  placeholder="🔍 Ism, familiya yoki telefon bo'yicha qidirish..."
+                  placeholder="Ism, familiya yoki telefon bo'yicha qidirish..."
                   class="search-input"
               />
             </div>
 
             <div class="filter-group">
               <select v-model="filterRoomId" class="filter-select">
-                <option :value="null">🏠 Barcha xonalar</option>
+                <option :value="null">Barcha xonalar</option>
                 <option v-for="room in rooms" :key="room.id" :value="room.id">
                   Xona {{ room.number }}
                 </option>
@@ -228,9 +276,9 @@ onMounted(() => {
 
             <div class="filter-group">
               <select v-model="filterAttendance" class="filter-select">
-                <option :value="null">📊 Barcha holat</option>
-                <option :value="true">✅ Qatnashdi</option>
-                <option :value="false">❌ Qatnashmadi</option>
+                <option :value="null">Barcha holat</option>
+                <option :value="true">Qatnashdi</option>
+                <option :value="false">Qatnashmadi</option>
               </select>
             </div>
 
@@ -251,7 +299,12 @@ onMounted(() => {
         <!-- Users Table -->
         <div class="table-card">
           <div v-if="filteredUsers.length === 0" class="empty-state">
-            <div class="empty-icon">🔍</div>
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </div>
             <h3>Natija topilmadi</h3>
             <p>Filter shartlariga mos foydalanuvchi topilmadi</p>
           </div>
@@ -277,11 +330,27 @@ onMounted(() => {
               </td>
               <td class="phone-cell">{{ user.phone || '-' }}</td>
               <td class="room-cell">
-                <span class="room-badge">🏠 {{ user.roomNumber }}</span>
+                <span class="room-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10l9-7 9 7"></path>
+                    <path d="M5 10v9h14v-9"></path>
+                    <path d="M9 19v-5h6v5"></path>
+                  </svg>
+                  {{ user.roomNumber }}
+                </span>
               </td>
               <td class="status-cell">
                 <span :class="['status-badge', user.isAttended ? 'attended' : 'not-attended']">
-                  {{ user.isAttended ? '✅ Qatnashdi' : '❌ Qatnashmadi' }}
+                  <span class="status-icon" aria-hidden="true">
+                    <svg v-if="user.isAttended" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12l4 4L19 6"></path>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 6L6 18"></path>
+                      <path d="M6 6l12 12"></path>
+                    </svg>
+                  </span>
+                  {{ user.isAttended ? 'Qatnashdi' : 'Qatnashmadi' }}
                 </span>
               </td>
             </tr>
@@ -427,7 +496,18 @@ onMounted(() => {
 }
 
 .info-icon {
-  font-size: 3.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.info-icon svg {
+  width: 28px;
+  height: 28px;
 }
 
 .info-details h2 {
@@ -439,6 +519,14 @@ onMounted(() => {
   margin: 0 0 0.25rem 0;
   opacity: 0.9;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-date svg {
+  width: 18px;
+  height: 18px;
 }
 
 .info-id {
@@ -487,7 +575,34 @@ onMounted(() => {
 }
 
 .stat-icon {
-  font-size: 2.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(102, 126, 234, 0.15);
+  color: #4c5be0;
+}
+
+.stat-card.success .stat-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.stat-card.danger .stat-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.stat-card.info .stat-icon {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4c5be0;
+}
+
+.stat-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .stat-info {
@@ -645,7 +760,9 @@ onMounted(() => {
 }
 
 .room-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.25rem 0.75rem;
   background: #e0e7ff;
   color: #667eea;
@@ -654,12 +771,19 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.room-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
 .status-cell {
   min-width: 140px;
 }
 
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -676,6 +800,17 @@ onMounted(() => {
   color: #ef4444;
 }
 
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -683,9 +818,21 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.empty-icon svg {
+  width: 34px;
+  height: 34px;
 }
 
 .empty-state h3 {

@@ -532,7 +532,17 @@ onMounted(() => {
     <div class="page-header">
       <div class="header-left">
         <button @click="goBack" class="back-button">← Orqaga</button>
-        <h1>Yotoqxona ma'lumotlari</h1>
+        <div class="page-title">
+          <span class="page-title__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10h18"></path>
+              <path d="M5 10V5h14v5"></path>
+              <path d="M4 10v9h16v-9"></path>
+              <path d="M9 19v-5h6v5"></path>
+            </svg>
+          </span>
+          <h1>Yotoqxona ma'lumotlari</h1>
+        </div>
       </div>
       <button v-if="dormitory" @click="openCreateModal" class="btn-create">+ Qavat qo'shish</button>
     </div>
@@ -616,7 +626,11 @@ onMounted(() => {
                           class="btn-copy-inline"
                           title="Taklif havolani nusxalash"
                       >
-                        📋 Nusxalash
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M16 4H8a2 2 0 0 0-2 2v12"></path>
+                          <rect x="10" y="8" width="10" height="12" rx="2"></rect>
+                        </svg>
+                        Nusxalash
                       </button>
                     </div>
                   </div>
@@ -660,7 +674,16 @@ onMounted(() => {
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>➕ Yangi Qavat Qo'shish</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8v8"></path>
+                <path d="M8 12h8"></path>
+              </svg>
+            </span>
+            Yangi Qavat Qo'shish
+          </h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -686,7 +709,13 @@ onMounted(() => {
                   @click="openLeaderModalForCreate"
                   class="btn-select-leader"
               >
-                👥 {{ getSelectedLeadersNames() }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M17 11a4 4 0 1 0-8 0"></path>
+                  <path d="M3 21a6 6 0 0 1 12 0"></path>
+                  <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+                </svg>
+                {{ getSelectedLeadersNames() }}
               </button>
               <button
                   v-if="createForm.leaderIds.length > 0"
@@ -715,8 +744,14 @@ onMounted(() => {
                   class="btn-regenerate"
                   :disabled="generatingRandomString"
               >
-                <span v-if="generatingRandomString">⏳</span>
-                <span v-else>🔗 Yaratish</span>
+                <span v-if="generatingRandomString" class="btn-label">Yaratilmoqda...</span>
+                <span v-else class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12"></path>
+                    <path d="M14 11a5 5 0 0 1 0 7L12.5 19.5a5 5 0 0 1-7-7L7 12"></path>
+                  </svg>
+                  Yaratish
+                </span>
               </button>
             </div>
 
@@ -731,7 +766,10 @@ onMounted(() => {
                     @click="copyCreateLink"
                     class="btn-copy-preview"
                 >
-                  📋
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4H8a2 2 0 0 0-2 2v12"></path>
+                    <rect x="10" y="8" width="10" height="12" rx="2"></rect>
+                  </svg>
                 </button>
               </div>
             </div>
@@ -754,7 +792,15 @@ onMounted(() => {
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>✏️ Qavatni Tahrirlash</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Qavatni tahrirlash
+          </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -780,7 +826,13 @@ onMounted(() => {
                   @click="openLeaderModalForEdit"
                   class="btn-select-leader"
               >
-                👥 {{ getSelectedEditLeadersNames() }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M17 11a4 4 0 1 0-8 0"></path>
+                  <path d="M3 21a6 6 0 0 1 12 0"></path>
+                  <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+                </svg>
+                {{ getSelectedEditLeadersNames() }}
               </button>
               <button
                   v-if="editForm.leaderIds.length > 0"
@@ -809,8 +861,14 @@ onMounted(() => {
                   class="btn-regenerate"
                   :disabled="generatingRandomString"
               >
-                <span v-if="generatingRandomString">⏳</span>
-                <span v-else>🔄 Qayta yaratish</span>
+                <span v-if="generatingRandomString" class="btn-label">Yaratilmoqda...</span>
+                <span v-else class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                    <path d="M21 3v6h-6"></path>
+                  </svg>
+                  Qayta yaratish
+                </span>
               </button>
             </div>
 
@@ -825,7 +883,10 @@ onMounted(() => {
                     @click="copyEditLink"
                     class="btn-copy-preview"
                 >
-                  📋
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4H8a2 2 0 0 0-2 2v12"></path>
+                    <rect x="10" y="8" width="10" height="12" rx="2"></rect>
+                  </svg>
                 </button>
               </div>
             </div>
@@ -848,7 +909,17 @@ onMounted(() => {
     <div v-if="showLeaderModal" class="modal-overlay" @click.self="showLeaderModal = false">
       <div class="modal leader-modal">
         <div class="modal-header">
-          <h2>👥 Sardorlar Tanlang</h2>
+          <h2 class="modal-title">
+            <span class="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M17 11a4 4 0 1 0-8 0"></path>
+                <path d="M3 21a6 6 0 0 1 12 0"></path>
+                <path d="M13 21a6 6 0 0 1 8-5.3"></path>
+              </svg>
+            </span>
+            Sardorlar tanlang
+          </h2>
           <button @click="showLeaderModal = false" class="modal-close">✕</button>
         </div>
         <div class="modal-body">
@@ -884,7 +955,10 @@ onMounted(() => {
                 class="btn-search"
                 :disabled="!editForm.id ? loadingLeaders : editLoadingLeaders"
             >
-              🔍
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
             </button>
           </div>
 
@@ -1293,6 +1367,14 @@ onMounted(() => {
   font-weight: 500;
   font-size: 0.85rem;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-copy-inline svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-copy-inline:hover {
@@ -1440,6 +1522,28 @@ onMounted(() => {
   font-size: 1.5rem;
 }
 
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #667eea;
+}
+
+.modal-title-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .modal-close {
   background: none;
   border: none;
@@ -1525,6 +1629,15 @@ onMounted(() => {
   text-align: left;
   transition: all 0.3s;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-select-leader svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .btn-select-leader:hover {
@@ -1571,6 +1684,20 @@ onMounted(() => {
   white-space: nowrap;
   font-size: 0.9rem;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-regenerate svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn-regenerate:hover:not(:disabled) {
@@ -1627,6 +1754,14 @@ onMounted(() => {
   transition: all 0.3s;
   flex-shrink: 0;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-copy-preview svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-copy-preview:hover {
@@ -1668,6 +1803,14 @@ onMounted(() => {
   font-weight: 600;
   transition: all 0.3s;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-search svg {
+  width: 18px;
+  height: 18px;
 }
 
 .btn-search:hover:not(:disabled) {
