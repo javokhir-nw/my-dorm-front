@@ -701,32 +701,6 @@ onMounted(() => {
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
 
-          <!-- Leader Tanlash -->
-          <div class="form-group">
-            <label>Qavat Sardorlari (ixtiyoriy, bir nechta tanlash mumkin)</label>
-            <div class="leader-selector">
-              <button
-                  @click="openLeaderModalForCreate"
-                  class="btn-select-leader"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M17 11a4 4 0 1 0-8 0"></path>
-                  <path d="M3 21a6 6 0 0 1 12 0"></path>
-                  <path d="M13 21a6 6 0 0 1 8-5.3"></path>
-                </svg>
-                {{ getSelectedLeadersNames() }}
-              </button>
-              <button
-                  v-if="createForm.leaderIds.length > 0"
-                  @click="clearAllLeaders"
-                  class="btn-clear-leader"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
           <!-- Qavat Havolasi -->
           <div class="form-group">
             <label>Qavat Taklif Havolasi *</label>
@@ -817,33 +791,6 @@ onMounted(() => {
             />
             <p v-if="formError" class="error-message">{{ formError }}</p>
           </div>
-
-          <!-- Leader Tanlash -->
-          <div class="form-group">
-            <label>Qavat Sardorlari (ixtiyoriy, bir nechta tanlash mumkin)</label>
-            <div class="leader-selector">
-              <button
-                  @click="openLeaderModalForEdit"
-                  class="btn-select-leader"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M17 11a4 4 0 1 0-8 0"></path>
-                  <path d="M3 21a6 6 0 0 1 12 0"></path>
-                  <path d="M13 21a6 6 0 0 1 8-5.3"></path>
-                </svg>
-                {{ getSelectedEditLeadersNames() }}
-              </button>
-              <button
-                  v-if="editForm.leaderIds.length > 0"
-                  @click="clearAllEditLeaders"
-                  class="btn-clear-leader"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
           <!-- Qavat Havolasi -->
           <div class="form-group">
             <label>Qavat Taklif Havolasi</label>
@@ -1063,7 +1010,7 @@ onMounted(() => {
   margin-bottom: 2rem;
   margin-left: 5%;
   background: white;
-  padding: 1.5rem 2rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -1071,18 +1018,53 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-title__icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  color: white;
+  padding: 0.35rem;
+  flex-shrink: 0;
+}
+
+.page-title__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-title h1 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .back-button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.85rem;
   background: #f0f0f0;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
   color: #667eea;
   transition: all 0.3s;
+  height: fit-content;
+  white-space: nowrap;
 }
 
 .back-button:hover {
@@ -1090,14 +1072,8 @@ onMounted(() => {
   color: white;
 }
 
-.page-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 1.8rem;
-}
-
 .btn-create {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   background: #10b981;
   color: white;
   border: none;
@@ -1105,7 +1081,11 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-create:hover {
@@ -1383,14 +1363,14 @@ onMounted(() => {
 
 .floor-list-actions {
   display: flex;
-  flex-direction: row;  /* ✅ column dan row ga */
-  gap: 0.5rem;  /* ✅ Gorizontal gap */
-  padding: 0.75rem 1rem;  /* ✅ Gorizontal padding */
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
   background: white;
   border-left: 1px solid #e0e0e0;
-  min-width: auto;  /* ✅ 60px emas, auto */
+  min-width: auto;
   justify-content: center;
-  align-items: center;  /* ✅ Qo'shildi */
+  align-items: center;
 }
 
 .btn-action {
@@ -1402,7 +1382,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;  /* ✅ Qo'shildi - tugmalar kichraymaydi */
+  flex-shrink: 0;
 }
 
 .btn-action svg {
@@ -1576,18 +1556,18 @@ onMounted(() => {
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;  /* ✅ 0.75rem dan 1rem ga o'zgartiring */
+  padding: 0.75rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
   font-family: inherit;
-  box-sizing: border-box;  /* ✅ Qo'shing */
+  box-sizing: border-box;
 }
 
 .form-input::placeholder {
-  color: #999;  /* ✅ Qo'shing - placeholder rangini o'zgartiradi */
-  font-size: 0.95rem;  /* ✅ Qo'shing - placeholder shriftini biroz kichiklashtiradi */
+  color: #999;
+  font-size: 0.95rem;
 }
 
 .form-input:focus {
@@ -2047,20 +2027,37 @@ onMounted(() => {
 
   .page-header {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-left: 0;
+    padding: 0.6rem 1rem;
   }
 
   .header-left {
     width: 100%;
   }
 
-  .page-header h1 {
-    font-size: 1.4rem;
+  .page-title h1 {
+    font-size: 1rem;
+  }
+
+  .page-title__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .page-title__icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .back-button {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
   }
 
   .btn-create {
     width: 100%;
+    font-size: 0.85rem;
   }
 
   .info-header {

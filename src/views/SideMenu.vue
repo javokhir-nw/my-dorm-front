@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -11,48 +11,124 @@ const isMalumotnomaDrop = ref(false)
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
+
+  if (!isMenuOpen.value) {
+    isMalumotnomaDrop.value = false
+  }
 }
 
-function toggleMalumotnoma() {
-  isMalumotnomaDrop.value = !isMalumotnomaDrop.value
+function closeAll() {
+  isMenuOpen.value = false
+  isMalumotnomaDrop.value = false
 }
 
+/** =========================
+ *  Navigation helpers
+ *  ========================= */
 function goToDashboard() {
   router.push('/dashboard')
-  isMenuOpen.value = false
+  closeAll()
 }
 
 function goToSettings() {
   router.push('/settings')
-  isMenuOpen.value = false
+  closeAll()
 }
 
 function goToDormitories() {
   router.push('/dormitories')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
+  closeAll()
 }
 
 function goToUsers() {
   router.push('/users')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
+  closeAll()
 }
 
 function goToRoomTypes() {
   router.push('/room-type')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
+  closeAll()
 }
+
 function goToAttendance() {
   router.push('/attendance')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
+  closeAll()
+}
+
+function goToDuty() {
+  router.push('/duty')
+  closeAll()
+}
+
+function goToRole() {
+  router.push('/role')
+  closeAll()
 }
 
 function handleLogout() {
   authStore.logout()
   router.push('/login')
+  closeAll()
+}
+
+/** =========================
+ *  Permission helpers (robust)
+ *  ========================= */
+
+/**
+ * Normalizatsiya:
+ * - trim() -> bo'sh joylarni yo'qotadi
+ * - toLowerCase() -> case mismatch bo'lmaydi
+ */
+function norm(x) {
+  return String(x ?? '').trim().toLowerCase()
+}
+
+/**
+ * hasPerm:
+ * - authStore.permissions string[] bo'lsa ham
+ * - object[] bo'lsa ham (p.name)
+ * - null/undefined bo'lsa ham ishlaydi
+ */
+function hasPerm(permission) {
+  const perms = authStore.permissions ?? []
+  const target = norm(permission)
+
+  if (Array.isArray(perms)) {
+    // string[]
+    if (typeof perms[0] === 'string') {
+      return perms.some(p => norm(p) === target)
+    }
+
+    return perms.some(p => norm(p?.name) === target)
+  }
+
+  return false
+}
+
+const canViewDormitories = computed(() => hasPerm('view dormitories'))
+console.log(canViewDormitories.value)
+const canViewUsers = computed(() => hasPerm('view users'))
+const canViewRoomTypes = computed(() => hasPerm('view room-types'))
+const canViewAttendances = computed(() => hasPerm('view attendances'))
+const canViewDuties = computed(() => hasPerm('view duties'))
+const canViewRoles = computed(() => true)
+
+const canSeeMalumotnoma = computed(() =>
+    canViewDormitories.value ||
+    canViewUsers.value ||
+    canViewRoomTypes.value ||
+    canViewAttendances.value ||
+    canViewDuties.value
+)
+
+watch(canSeeMalumotnoma, (ok) => {
+  if (!ok) isMalumotnomaDrop.value = false
+})
+
+function safeToggleMalumotnoma() {
+  if (!canSeeMalumotnoma.value) return
+  isMalumotnomaDrop.value = !isMalumotnomaDrop.value
 }
 </script>
 
@@ -60,9 +136,7 @@ function handleLogout() {
   <div>
     <button class="menu-button" @click="toggleMenu">
       <span class="hamburger-icon" :class="{ open: isMenuOpen }">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
       </span>
     </button>
 
@@ -71,7 +145,14 @@ function handleLogout() {
       <div class="menu-header">
         <div class="menu-title">
           <span class="menu-title__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
               <path d="M3 10.5L12 3l9 7.5"></path>
               <path d="M5 10v10h14V10"></path>
               <path d="M9 20v-6h6v6"></path>
@@ -84,13 +165,23 @@ function handleLogout() {
 
       <nav class="menu-nav">
         <div class="user-info-menu">
-          <p class="user-name">{{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}</p>
+          <p class="user-name">
+            {{ authStore.currentUser?.firstName }} {{ authStore.currentUser?.lastName }}
+          </p>
           <p class="user-username">@{{ authStore.currentUser?.username }}</p>
         </div>
 
+        <!-- Dashboard -->
         <button @click="goToDashboard" class="menu-item">
           <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
               <rect x="3" y="3" width="7" height="7" rx="2"></rect>
               <rect x="14" y="3" width="7" height="7" rx="2"></rect>
               <rect x="14" y="14" width="7" height="7" rx="2"></rect>
@@ -100,12 +191,18 @@ function handleLogout() {
           Dashboard
         </button>
 
-        <!-- Ma'lumotnoma Dropdown -->
-        <div class="dropdown-wrapper">
-          <button @click="toggleMalumotnoma" class="menu-item dropdown-btn">
+        <div v-if="canSeeMalumotnoma" class="dropdown-wrapper">
+          <button @click="safeToggleMalumotnoma" class="menu-item dropdown-btn">
             <span class="menu-item__label">
               <span class="menu-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
                   <path d="M4 6h16"></path>
                   <path d="M4 12h16"></path>
                   <path d="M4 18h10"></path>
@@ -117,9 +214,21 @@ function handleLogout() {
           </button>
 
           <div v-show="isMalumotnomaDrop" class="dropdown-menu">
-            <button @click="goToDormitories" class="dropdown-item">
+            <!-- Yotoqxonalar -->
+            <button
+                v-if="canViewDormitories"
+                @click="goToDormitories"
+                class="dropdown-item"
+            >
               <span class="menu-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
                   <path d="M3 10h18"></path>
                   <path d="M5 10V5h14v5"></path>
                   <path d="M4 10v9h16v-9"></path>
@@ -128,9 +237,22 @@ function handleLogout() {
               </span>
               Yotoqxonalar
             </button>
-            <button @click="goToUsers" class="dropdown-item">
+
+            <!-- Foydalanuvchilar -->
+            <button
+                v-if="canViewUsers"
+                @click="goToUsers"
+                class="dropdown-item"
+            >
               <span class="menu-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
                   <path d="M16 11a4 4 0 1 0-8 0"></path>
                   <path d="M4 20a8 8 0 0 1 16 0"></path>
                   <circle cx="12" cy="7" r="4"></circle>
@@ -138,9 +260,44 @@ function handleLogout() {
               </span>
               Foydalanuvchilar
             </button>
-            <button @click="goToRoomTypes" class="dropdown-item">
+
+            <!-- Rollar -->
+            <button
+                v-if="canViewRoles"
+                @click="goToRole"
+                class="dropdown-item"
+            >
+                <span class="menu-icon">
+                  <svg
+                     viewBox="0 0 24 24"
+                      fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                      stroke-linecap="round"
+                     stroke-linejoin="round"
+                 >
+                   <path d="M12 2 3 6v6c0 5 3.8 9.4 9 10 5.2-.6 9-5 9-10V6l-9-4Z"></path>
+                   <path d="M9 12l2 2 4-4"></path>
+                  </svg>
+                </span>
+                           Rollar
+            </button>
+
+            <!-- Xona turi -->
+            <button
+                v-if="canViewRoomTypes"
+                @click="goToRoomTypes"
+                class="dropdown-item"
+            >
               <span class="menu-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
                   <path d="M3 12h18"></path>
                   <path d="M5 12V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v5"></path>
                   <path d="M4 20h16"></path>
@@ -149,9 +306,22 @@ function handleLogout() {
               </span>
               Xona turi
             </button>
-            <button @click="goToAttendance" class="dropdown-item">
+
+            <!-- Davomat -->
+            <button
+                v-if="canViewAttendances"
+                @click="goToAttendance"
+                class="dropdown-item"
+            >
               <span class="menu-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
                   <rect x="3" y="4" width="18" height="18" rx="3"></rect>
                   <path d="M16 2v4"></path>
                   <path d="M8 2v4"></path>
@@ -161,14 +331,46 @@ function handleLogout() {
               </span>
               Davomat
             </button>
+
+            <!-- Navbatchilik -->
+            <button
+                v-if="canViewDuties"
+                @click="goToDuty"
+                class="dropdown-item"
+            >
+              <span class="menu-icon">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                  <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z"></path>
+                  <path d="M9.5 12l1.7 1.7L14.8 10"></path>
+                </svg>
+              </span>
+              Navbatchilik
+            </button>
           </div>
         </div>
 
+        <!-- Settings -->
         <button @click="goToSettings" class="menu-item">
           <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
               <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.31-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06c.46.46 1.13.6 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09c0 .7.4 1.31 1 1.51.68.27 1.36.13 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.46.46-.6 1.13-.33 1.82V9c.2.6.81 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.7 0-1.31.4-1.51 1Z"></path>
+              <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.31-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06c.46.46 1.13.6 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09c0 .7.4 1.31 1 1.51.68.27 1.36.13 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.46.46-.6 1.13-.33 1.82V9c.2.6.81 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.7 0-1.31.4-1.51 1Z"
+              ></path>
             </svg>
           </span>
           Sozlamalar
@@ -176,7 +378,14 @@ function handleLogout() {
 
         <button @click="handleLogout" class="menu-item logout">
           <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <path d="M16 17l5-5-5-5"></path>
               <path d="M21 12H9"></path>
@@ -184,20 +393,22 @@ function handleLogout() {
           </span>
           Chiqish
         </button>
+
+        <!-- Optional: tez debug uchun (xohlasangiz olib tashlang)
+        <pre style="font-size:12px;white-space:pre-wrap;">
+permissions: {{ authStore.permissions }}
+canSeeMalumotnoma: {{ canSeeMalumotnoma.value }}
+        </pre>
+        -->
       </nav>
     </div>
 
     <!-- Overlay -->
-    <div
-        class="overlay"
-        :class="{ show: isMenuOpen }"
-        @click="toggleMenu"
-    ></div>
+    <div class="overlay" :class="{ show: isMenuOpen }" @click="toggleMenu"></div>
   </div>
 </template>
 
 <style scoped>
-/* Hamburger Menu Button */
 .menu-button {
   position: fixed;
   top: 1.5rem;
@@ -234,19 +445,10 @@ function handleLogout() {
   transition: all 0.3s;
 }
 
-.hamburger-icon.open span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
+.hamburger-icon.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-icon.open span:nth-child(2) { opacity: 0; }
+.hamburger-icon.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-.hamburger-icon.open span:nth-child(2) {
-  opacity: 0;
-}
-
-.hamburger-icon.open span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-/* Side Menu */
 .side-menu {
   position: fixed;
   top: 0;
@@ -260,9 +462,7 @@ function handleLogout() {
   overflow-y: auto;
 }
 
-.side-menu.open {
-  left: 0;
-}
+.side-menu.open { left: 0; }
 
 .menu-header {
   display: flex;
@@ -274,11 +474,7 @@ function handleLogout() {
   color: white;
 }
 
-.menu-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
+.menu-title { display: flex; align-items: center; gap: 0.75rem; }
 
 .menu-title__icon {
   width: 36px;
@@ -290,15 +486,9 @@ function handleLogout() {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.menu-title__icon svg {
-  width: 20px;
-  height: 20px;
-}
+.menu-title__icon svg { width: 20px; height: 20px; }
 
-.menu-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
+.menu-header h3 { margin: 0; font-size: 1.5rem; }
 
 .close-button {
   background: rgba(255, 255, 255, 0.2);
@@ -315,14 +505,9 @@ function handleLogout() {
   transition: all 0.3s;
 }
 
-.close-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
+.close-button:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(90deg); }
 
-.menu-nav {
-  padding: 1rem;
-}
+.menu-nav { padding: 1rem; }
 
 .user-info-menu {
   background: #f8f9fa;
@@ -331,17 +516,8 @@ function handleLogout() {
   margin-bottom: 1rem;
 }
 
-.user-name {
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.25rem 0;
-}
-
-.user-username {
-  color: #667eea;
-  font-size: 0.9rem;
-  margin: 0;
-}
+.user-name { font-weight: 600; color: #333; margin: 0 0 0.25rem 0; }
+.user-username { color: #667eea; font-size: 0.9rem; margin: 0; }
 
 .menu-item {
   width: 100%;
@@ -361,11 +537,7 @@ function handleLogout() {
   gap: 0.5rem;
 }
 
-.menu-item__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.menu-item__label { display: inline-flex; align-items: center; gap: 0.5rem; }
 
 .menu-icon {
   width: 20px;
@@ -376,14 +548,8 @@ function handleLogout() {
   color: #667eea;
 }
 
-.menu-item.logout .menu-icon {
-  color: currentColor;
-}
-
-.menu-icon svg {
-  width: 20px;
-  height: 20px;
-}
+.menu-item.logout .menu-icon { color: currentColor; }
+.menu-icon svg { width: 20px; height: 20px; }
 
 .menu-item:hover {
   background: #f8f9fa;
@@ -397,19 +563,10 @@ function handleLogout() {
   color: #ff4757;
 }
 
-.menu-item.logout:hover {
-  background: #ff4757;
-  color: white;
-}
+.menu-item.logout:hover { background: #ff4757; color: white; }
 
-/* Dropdown */
-.dropdown-wrapper {
-  margin-bottom: 0.5rem;
-}
-
-.dropdown-btn {
-  justify-content: space-between;
-}
+.dropdown-wrapper { margin-bottom: 0.5rem; }
+.dropdown-btn { justify-content: space-between; }
 
 .dropdown-btn .arrow {
   transition: transform 0.3s;
@@ -417,9 +574,7 @@ function handleLogout() {
   font-size: 0.85rem;
 }
 
-.dropdown-btn .arrow.rotated {
-  transform: rotate(180deg);
-}
+.dropdown-btn .arrow.rotated { transform: rotate(180deg); }
 
 .dropdown-menu {
   background: #f8f9fa;
@@ -452,7 +607,6 @@ function handleLogout() {
   padding-left: 3rem;
 }
 
-/* Overlay */
 .overlay {
   position: fixed;
   top: 0;
@@ -466,15 +620,9 @@ function handleLogout() {
   transition: all 0.3s;
 }
 
-.overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
+.overlay.show { opacity: 1; visibility: visible; }
 
 @media (max-width: 768px) {
-  .side-menu {
-    width: 280px;
-    left: -280px;
-  }
+  .side-menu { width: 280px; left: -280px; }
 }
 </style>
