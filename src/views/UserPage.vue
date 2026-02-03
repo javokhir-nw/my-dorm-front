@@ -811,7 +811,7 @@ onMounted(() => {
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(user, index) in users" :key="user.id">
+          <tr v-for="(user, index) in users" :key="1">
             <td>{{ index + 1 }}</td>
             <td class="user-name-cell">
               {{ user.lastName }} {{ user.firstName }} {{ user.middleName }}
