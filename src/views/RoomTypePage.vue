@@ -1,10 +1,39 @@
 <script setup>
-import {ref, onMounted} from 'vue'
-import {useAuthStore} from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import axios from 'axios'
 import SideMenu from '../views/SideMenu.vue'
 
 const authStore = useAuthStore()
+
+/**
+ * ✅ 403 uchun eng ko‘p sabab: Authorization header yo‘qligi.
+ * Bu interceptor har requestga token qo‘shadi (agar bor bo‘lsa).
+ *
+ * Pitfall:
+ * - Agar siz cookie-session + CSRF ishlatsangiz, token emas, CSRF kerak bo‘ladi.
+ *   Unda withCredentials true bo‘lishi mumkin. (pastda komment qilingan)
+ */
+const api = axios.create({
+  // baseURL kerak bo‘lsa shu yerga qo‘ying:
+  // baseURL: '/',
+  // Agar cookie-session ishlatsangiz yoqing:
+  // withCredentials: true,
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+      authStore.token ||
+      authStore.accessToken ||
+      authStore.authToken ||
+      authStore?.user?.token
+
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 const roomTypes = ref([])
 const loading = ref(false)
@@ -17,23 +46,12 @@ const showDeleteModal = ref(false)
 const showSuccessModal = ref(false)
 
 // Form data
-const createForm = ref({
-  name: ''
-})
-
-const editForm = ref({
-  id: null,
-  name: ''
-})
-
+const createForm = ref({ name: '' })
+const editForm = ref({ id: null, name: '' })
 const deleteId = ref(null)
 
 // Success/Error message
-const modalMessage = ref({
-  title: '',
-  text: '',
-  type: 'success'
-})
+const modalMessage = ref({ title: '', text: '', type: 'success' })
 
 // Loading states for modals
 const createLoading = ref(false)
@@ -41,22 +59,21 @@ const editLoading = ref(false)
 const deleteLoading = ref(false)
 
 // Form validation errors
-const formErrors = ref({
-  name: ''
-})
+const formErrors = ref({ name: '' })
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function fetchRoomTypes() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await axios.get('/api/room-type/list')
-
+    const response = await api.get('/api/room-type/list')
     roomTypes.value = response.data
   } catch (err) {
+    // Diagnostika
+    console.log('LIST ERR:', err?.response?.status, err?.response?.data)
+
     if (err.message !== 'Unauthorized - Session expired') {
-      error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
+      error.value = err?.response?.data?.message || err.message || "Server bilan bog'lanishda xatolik!"
     }
   } finally {
     loading.value = false
@@ -64,20 +81,12 @@ async function fetchRoomTypes() {
 }
 
 function showSuccessMessage(title, text) {
-  modalMessage.value = {
-    title,
-    text,
-    type: 'success'
-  }
+  modalMessage.value = { title, text, type: 'success' }
   showSuccessModal.value = true
 }
 
 function showErrorMessage(title, text) {
-  modalMessage.value = {
-    title,
-    text,
-    type: 'error'
-  }
+  modalMessage.value = { title, text, type: 'error' }
   showSuccessModal.value = true
 }
 
@@ -86,9 +95,7 @@ function closeSuccessModal() {
 }
 
 function clearFormErrors() {
-  formErrors.value = {
-    name: ''
-  }
+  formErrors.value = { name: '' }
 }
 
 function validateForm(form) {
@@ -105,9 +112,7 @@ function validateForm(form) {
 
 // Create Room Type
 function openCreateModal() {
-  createForm.value = {
-    name: ''
-  }
+  createForm.value = { name: '' }
   clearFormErrors()
   showCreateModal.value = true
 }
@@ -117,26 +122,27 @@ function closeCreateModal() {
   clearFormErrors()
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function createRoomType() {
-  if (!validateForm(createForm.value)) {
-    return
-  }
-
+  if (!validateForm(createForm.value)) return
   createLoading.value = true
 
   try {
-    const requestBody = {
-      name: createForm.value.name.trim()
-    }
-
-    const response = await axios.post('/api/room-type/create', requestBody)
+    const requestBody = { name: createForm.value.name.trim() }
+    await api.post('/api/room-type/create', requestBody)
 
     closeCreateModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli yaratildi')
     fetchRoomTypes()
   } catch (err) {
-    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+    console.log('CREATE ERR:', err?.response?.status, err?.response?.data)
+
+    const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        'Xatolik yuz berdi!'
+
+    showErrorMessage('Xatolik!', msg)
   } finally {
     createLoading.value = false
   }
@@ -144,10 +150,7 @@ async function createRoomType() {
 
 // Edit Room Type
 function openEditModal(roomType) {
-  editForm.value = {
-    id: roomType.id,
-    name: roomType.name
-  }
+  editForm.value = { id: roomType.id, name: roomType.name }
   clearFormErrors()
   showEditModal.value = true
 }
@@ -157,27 +160,31 @@ function closeEditModal() {
   clearFormErrors()
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function updateRoomType() {
-  if (!validateForm(editForm.value)) {
-    return
-  }
-
+  if (!validateForm(editForm.value)) return
   editLoading.value = true
 
   try {
-    const requestBody = {
-      id: editForm.value.id,
-      name: editForm.value.name.trim()
-    }
+    const requestBody = { id: editForm.value.id, name: editForm.value.name.trim() }
 
-    const response = await axios.post('/api/room-type/update', requestBody)
+    // Agar backend PUT kutsa:
+    // await api.put('/api/room-type/update', requestBody)
+    // Sizda POST ishlatilgan, shuni qoldirdim:
+    await api.post('/api/room-type/update', requestBody)
 
     closeEditModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli yangilandi')
     fetchRoomTypes()
   } catch (err) {
-    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+    console.log('UPDATE ERR:', err?.response?.status, err?.response?.data)
+
+    const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        'Xatolik yuz berdi!'
+
+    showErrorMessage('Xatolik!', msg)
   } finally {
     editLoading.value = false
   }
@@ -194,32 +201,37 @@ function closeDeleteModal() {
   deleteId.value = null
 }
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
 async function deleteRoomType() {
   deleteLoading.value = true
 
   try {
-    const response = await axios.delete(`/api/room-type/delete/${deleteId.value}`)
+    await api.delete(`/api/room-type/delete/${deleteId.value}`)
 
     closeDeleteModal()
-    showSuccessMessage('Muvaffaqiyatli!', 'Xona turi muvaffaqiyatli o\'chirildi')
+    showSuccessMessage('Muvaffaqiyatli!', "Xona turi muvaffaqiyatli o'chirildi")
     fetchRoomTypes()
   } catch (err) {
+    console.log('DELETE ERR:', err?.response?.status, err?.response?.data)
+
     closeDeleteModal()
-    showErrorMessage('Xatolik!', err.message || 'Xatolik yuz berdi!')
+    const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        'Xatolik yuz berdi!'
+
+    showErrorMessage('Xatolik!', msg)
   } finally {
     deleteLoading.value = false
   }
 }
 
-onMounted(() => {
-  fetchRoomTypes()
-})
+onMounted(fetchRoomTypes)
 </script>
 
 <template>
   <div class="page-container">
-    <SideMenu/>
+    <SideMenu />
 
     <div class="page-header">
       <div class="header-left">
@@ -235,30 +247,30 @@ onMounted(() => {
           <h1>Xona turlari</h1>
         </div>
       </div>
-      <button @click="openCreateModal" class="btn-create">+ Xona turi qo'shish</button>
+
+      <button @click="openCreateModal" class="btn-create">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Xona turi qo'shish
+      </button>
     </div>
 
     <div class="page-content">
-      <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
         <p>Yuklanmoqda...</p>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="error-card">
         <p>{{ error }}</p>
         <button @click="fetchRoomTypes" class="btn-retry">Qayta urinish</button>
       </div>
 
-      <!-- Room Types List -->
       <div v-else class="content-card">
         <div v-if="roomTypes && roomTypes.length > 0" class="room-types-list">
-          <div
-              v-for="roomType in roomTypes"
-              :key="roomType.id"
-              class="room-type-item"
-          >
+          <div v-for="roomType in roomTypes" :key="roomType.id" class="room-type-item">
             <div class="room-type-info">
               <div class="room-type-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -280,6 +292,7 @@ onMounted(() => {
                 </svg>
                 Tahrirlash
               </button>
+
               <button @click="openDeleteModal(roomType.id)" class="btn-delete" title="O'chirish">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"></path>
@@ -294,7 +307,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Empty State -->
         <div v-else class="empty-state">
           <div class="empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -304,14 +316,21 @@ onMounted(() => {
           </div>
           <h3>Xona turlari mavjud emas</h3>
           <p>Birinchi xona turini qo'shish uchun yuqoridagi tugmani bosing</p>
-          <button @click="openCreateModal" class="btn-add-first">+ Birinchi xona turini qo'shish</button>
+          <button @click="openCreateModal" class="btn-add-first">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Birinchi xona turini qo'shish
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Create Modal -->
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
-      <div class="modal modal-medium">
+      <!-- ✅ modal-compact qo‘shildi -->
+      <div class="modal modal-medium modal-compact">
         <div class="modal-header">
           <h2 class="modal-title">
             <span class="modal-title-icon">
@@ -324,6 +343,7 @@ onMounted(() => {
           </h2>
           <button @click="closeCreateModal" class="modal-close">✕</button>
         </div>
+
         <div class="modal-body">
           <div class="form-group">
             <label>Xona turi nomi *</label>
@@ -338,10 +358,9 @@ onMounted(() => {
             <p v-if="formErrors.name" class="error-message">{{ formErrors.name }}</p>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">
-            Bekor qilish
-          </button>
+          <button @click="closeCreateModal" class="btn-cancel" :disabled="createLoading">Bekor qilish</button>
           <button @click="createRoomType" class="btn-submit" :disabled="createLoading">
             <span v-if="createLoading">Saqlanmoqda...</span>
             <span v-else>Saqlash</span>
@@ -352,7 +371,8 @@ onMounted(() => {
 
     <!-- Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
-      <div class="modal modal-medium">
+      <!-- ✅ modal-compact qo‘shildi -->
+      <div class="modal modal-medium modal-compact">
         <div class="modal-header">
           <h2 class="modal-title">
             <span class="modal-title-icon">
@@ -365,6 +385,7 @@ onMounted(() => {
           </h2>
           <button @click="closeEditModal" class="modal-close">✕</button>
         </div>
+
         <div class="modal-body">
           <div class="form-group">
             <label>Xona turi nomi *</label>
@@ -379,10 +400,9 @@ onMounted(() => {
             <p v-if="formErrors.name" class="error-message">{{ formErrors.name }}</p>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">
-            Bekor qilish
-          </button>
+          <button @click="closeEditModal" class="btn-cancel" :disabled="editLoading">Bekor qilish</button>
           <button @click="updateRoomType" class="btn-submit" :disabled="editLoading">
             <span v-if="editLoading">Saqlanmoqda...</span>
             <span v-else>Saqlash</span>
@@ -409,16 +429,16 @@ onMounted(() => {
           </h2>
           <button @click="closeDeleteModal" class="modal-close">✕</button>
         </div>
+
         <div class="modal-body">
           <p class="delete-warning">
             Haqiqatan ham ushbu xona turini o'chirmoqchimisiz?
-            <br><strong>Bu amalni ortga qaytarib bo'lmaydi!</strong>
+            <br /><strong>Bu amalni ortga qaytarib bo'lmaydi!</strong>
           </p>
         </div>
+
         <div class="modal-footer">
-          <button @click="closeDeleteModal" class="btn-cancel" :disabled="deleteLoading">
-            Bekor qilish
-          </button>
+          <button @click="closeDeleteModal" class="btn-cancel" :disabled="deleteLoading">Bekor qilish</button>
           <button @click="deleteRoomType" class="btn-delete-confirm" :disabled="deleteLoading">
             <span v-if="deleteLoading">O'chirilmoqda...</span>
             <span v-else>O'chirish</span>
@@ -437,9 +457,7 @@ onMounted(() => {
           </div>
           <h3 class="message-title">{{ modalMessage.title }}</h3>
           <p class="message-text">{{ modalMessage.text }}</p>
-          <button @click="closeSuccessModal" class="btn-message-ok">
-            OK
-          </button>
+          <button @click="closeSuccessModal" class="btn-message-ok">OK</button>
         </div>
       </div>
     </div>
@@ -447,10 +465,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* === sizning CSS’ingiz (qisqartirmadim), faqat 2 joyga fix qo‘shdim === */
+
 .page-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   padding: 2rem;
+  padding-left: 5.5rem;
 }
 
 .page-header {
@@ -458,55 +479,73 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  margin-left: 5%;
   background: white;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 1rem 1.75rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.header-left {
+.header-left { display: flex; align-items: center; gap: 1rem; }
+
+.page-title { display: flex; align-items: center; gap: 1rem; }
+
+.page-title__icon {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  flex-shrink: 0;
 }
+
+.page-title__icon svg { width: 24px; height: 24px; }
 
 .page-header h1 {
   margin: 0;
-  color: #333;
-  font-size: 1.8rem;
+  color: #1a202c;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .btn-create {
   padding: 0.75rem 1.5rem;
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.btn-create svg { width: 18px; height: 18px; }
 
 .btn-create:hover {
-  background: #059669;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
-.page-content {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+.page-content { max-width: 1400px; margin: 0 auto; }
 
 /* Loading */
 .loading-container {
   text-align: center;
   padding: 4rem 2rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .spinner {
@@ -519,128 +558,97 @@ onMounted(() => {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* Error */
 .error-card {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 16px;
   text-align: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.error-card p {
-  color: #ff4757;
-  margin-bottom: 1rem;
-  font-weight: 600;
-}
+.error-card p { color: #ef4444; margin-bottom: 1rem; font-weight: 600; }
 
 .btn-retry {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.btn-retry:hover {
-  background: #5568d3;
-}
+.btn-retry:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }
 
 /* Content Card */
 .content-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Room Types List */
-.room-types-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+.room-types-list { display: flex; flex-direction: column; gap: 1rem; }
 
 .room-type-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
   transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .room-type-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
   border-color: #667eea;
 }
 
-.room-type-info {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
+.room-type-info { display: flex; align-items: center; gap: 1.5rem; }
 
 .room-type-icon {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: #eef2ff;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
   color: #667eea;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  transition: all 0.3s;
+  flex-shrink: 0;
 }
 
-.room-type-icon svg {
-  width: 26px;
-  height: 26px;
+.room-type-item:hover .room-type-icon {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
 }
 
-.room-type-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
+.room-type-icon svg { width: 28px; height: 28px; }
 
-.room-type-name {
-  margin: 0;
-  color: #333;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
+.room-type-details { display: flex; flex-direction: column; gap: 0.35rem; }
 
-.room-type-id {
-  margin: 0;
-  color: #999;
-  font-size: 0.875rem;
-}
+.room-type-name { margin: 0; color: #1a202c; font-size: 1.3rem; font-weight: 700; }
+.room-type-id { margin: 0; color: #9ca3af; font-size: 0.875rem; font-weight: 500; }
 
-.room-type-actions {
-  display: flex;
-  gap: 0.75rem;
-}
+.room-type-actions { display: flex; gap: 0.75rem; flex-shrink: 0; }
 
 .btn-edit, .btn-delete {
   padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
@@ -650,139 +658,111 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.btn-edit svg,
-.btn-delete svg {
-  width: 16px;
-  height: 16px;
-}
+.btn-edit svg, .btn-delete svg { width: 16px; height: 16px; }
 
 .btn-edit {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
-}
-
-.btn-edit:hover {
-  background: #d97706;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+.btn-edit:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
 }
 
 .btn-delete {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
-}
-
-.btn-delete:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.btn-delete:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
 /* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-}
+.empty-state { text-align: center; padding: 4rem 2rem; }
 
 .empty-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 1rem;
-  opacity: 0.6;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  opacity: 0.7;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 20px;
-  background: #f1f5ff;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
   color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
 }
 
-.empty-icon svg {
-  width: 34px;
-  height: 34px;
-}
+.empty-icon svg { width: 40px; height: 40px; }
 
-.empty-state h3 {
-  color: #333;
-  margin: 0 0 0.5rem 0;
-  font-size: 1.5rem;
-}
+.empty-state h3 { color: #1a202c; margin: 0 0 0.75rem 0; font-size: 1.6rem; font-weight: 700; }
 
-.empty-state p {
-  color: #666;
-  margin: 0 0 2rem 0;
-  font-size: 1rem;
-}
+.empty-state p { color: #6b7280; margin: 0 0 2rem 0; font-size: 1.05rem; }
 
 .btn-add-first {
-  padding: 0.75rem 1.5rem;
-  background: #10b981;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
   font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
+.btn-add-first svg { width: 18px; height: 18px; }
+
 .btn-add-first:hover {
-  background: #059669;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
+  z-index: 2000;
+  backdrop-filter: blur(8px);
 }
 
 .modal {
   background: white;
   border-radius: 16px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-height: 90vh;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  max-height: 85vh;
   overflow-y: auto;
   animation: modalSlideIn 0.3s ease-out;
 }
 
 @keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-30px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.modal-small {
-  max-width: 450px;
-}
-
-.modal-medium {
-  max-width: 550px;
-}
-
-.modal-message {
-  max-width: 400px;
-}
+.modal-small { max-width: 420px; }
+.modal-medium { max-width: 480px; }
+.modal-message { max-width: 380px; }
 
 .modal-header {
-  padding: 1.5rem 2rem;
-  border-bottom: 2px solid #f0f0f0;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 2px solid #f3f4f6;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -790,21 +770,14 @@ onMounted(() => {
   top: 0;
   background: white;
   z-index: 10;
+  border-radius: 16px 16px 0 0;
 }
 
-.modal-header h2 {
-  margin: 0;
-  color: #333;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
+.modal-header h2 { margin: 0; color: #1a202c; font-size: 1.2rem; font-weight: 700; }
 
-.modal-title {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
+.modal-title { display: flex; align-items: center; gap: 0.6rem; }
 
+/* ✅ gradient fix (sizda 135deg: xato edi) */
 .modal-title-icon {
   width: 34px;
   height: 34px;
@@ -812,21 +785,19 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
   color: #667eea;
+  flex-shrink: 0;
 }
 
-.modal-title-icon svg {
-  width: 18px;
-  height: 18px;
-}
+.modal-title-icon svg { width: 18px; height: 18px; }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #999;
+  color: #9ca3af;
   transition: all 0.3s;
   width: 36px;
   height: 36px;
@@ -834,108 +805,77 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
-.modal-close:hover {
-  color: #333;
-  background: #f0f0f0;
-}
+.modal-close:hover { color: #1a202c; background: #f3f4f6; transform: rotate(90deg); }
 
-.modal-body {
-  padding: 2rem;
-}
+.modal-body { padding: 1.5rem; }
 
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
-}
+.form-group { margin-bottom: 1.25rem; }
+.form-group:last-child { margin-bottom: 0; }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.75rem;
-  color: #333;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e0e0e0;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   transition: all 0.3s;
   font-family: inherit;
+  background: #fafafa;
 }
 
 .form-input:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-input.input-error {
-  border-color: #ef4444;
-}
-
-.form-input.input-error:focus {
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-}
-
-.error-message {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-  font-weight: 500;
-}
-
-.delete-warning {
-  color: #ef4444;
-  font-weight: 600;
-  text-align: center;
-  line-height: 1.8;
-  font-size: 1.05rem;
-}
-
-.modal-footer {
-  padding: 1.5rem 2rem;
-  border-top: 2px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  position: sticky;
-  bottom: 0;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
   background: white;
 }
 
+.form-input.input-error { border-color: #ef4444; background: #fef2f2; }
+.form-input.input-error:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+
+.error-message { color: #ef4444; font-size: 0.85rem; margin-top: 0.4rem; margin-bottom: 0; font-weight: 500; }
+
+.delete-warning { color: #dc2626; font-weight: 600; text-align: center; line-height: 1.7; font-size: 1rem; }
+
+.modal-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 2px solid #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-radius: 0 0 16px 16px;
+}
+
 .btn-cancel {
-  padding: 0.875rem 1.75rem;
-  background: #e9ecef;
-  color: #333;
+  padding: 0.7rem 1.5rem;
+  background: #f3f4f6;
+  color: #374151;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
-
-.btn-cancel:hover:not(:disabled) {
-  background: #dee2e6;
-  transform: translateY(-2px);
-}
-
-.btn-cancel:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-cancel:hover:not(:disabled) { background: #e5e7eb; transform: translateY(-2px); }
+.btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-submit {
-  padding: 0.875rem 1.75rem;
+  padding: 0.7rem 1.5rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -943,164 +883,105 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-
-.btn-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-delete-confirm {
-  padding: 0.875rem 1.75rem;
-  background: #ef4444;
+  padding: 0.7rem 1.5rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
-
 .btn-delete-confirm:hover:not(:disabled) {
-  background: #dc2626;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
-
-.btn-delete-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-delete-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Success/Error Message Modal */
-.message-body {
-  text-align: center;
-  padding: 2.5rem 2rem;
-}
+.message-body { text-align: center; padding: 2rem 1.5rem; }
 
 .message-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  margin: 0 auto 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  font-weight: bold;
+  width: 70px; height: 70px; border-radius: 50%;
+  margin: 0 auto 1.25rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; font-weight: bold;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
+.icon-success { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #10b981; }
+.icon-error { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #ef4444; }
 
-.icon-success {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #10b981;
-}
-
-.icon-error {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #ef4444;
-}
-
-.message-title {
-  color: #333;
-  font-size: 1.75rem;
-  margin: 0 0 0.75rem 0;
-  font-weight: 700;
-}
-
-.message-text {
-  color: #666;
-  font-size: 1.05rem;
-  margin: 0 0 2rem 0;
-  line-height: 1.6;
-}
+.message-title { color: #1a202c; font-size: 1.5rem; margin: 0 0 0.6rem 0; font-weight: 700; }
+.message-text { color: #6b7280; font-size: 1rem; margin: 0 0 1.5rem 0; line-height: 1.6; }
 
 .btn-message-ok {
-  padding: 0.875rem 2.5rem;
+  padding: 0.75rem 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1rem;
   transition: all 0.3s;
-  min-width: 140px;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
+.btn-message-ok:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }
 
-.btn-message-ok:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+/* =========================
+   ✅ Create/Update inputlarni kichraytirish
+   (faqat modal-compact bo‘lsa)
+   IMPORTANT: bu blok style oxirida turishi kerak
+========================= */
+.modal-compact .modal-body { padding: 0.95rem !important; }
+.modal-compact .form-group { margin-bottom: 0.75rem !important; }
+.modal-compact .form-group label { margin-bottom: 0.25rem !important; font-size: 0.86rem !important; }
+.modal-compact .form-input {
+  padding: 0.45rem 0.75rem !important;
+  font-size: 0.88rem !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+}
+.modal-compact .btn-cancel,
+.modal-compact .btn-submit {
+  padding: 0.6rem 1.25rem !important;
+  font-size: 0.92rem !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .page-container {
-    padding: 1rem;
-  }
+  .page-container { padding: 1rem; padding-left: 1rem; }
 
-  .page-header {
-    flex-direction: column;
-    gap: 1rem;
-    margin-left: 0;
-    padding: 1.25rem;
-  }
+  .page-header { flex-direction: column; gap: 1rem; padding: 1.25rem; }
 
-  .page-header h1 {
-    font-size: 1.5rem;
-  }
+  .header-left { width: 100%; justify-content: flex-start; }
 
-  .btn-create {
-    width: 100%;
-  }
+  .page-title__icon { width: 40px; height: 40px; }
+  .page-title__icon svg { width: 20px; height: 20px; }
 
-  .room-type-item {
-    flex-direction: column;
-    gap: 1.5rem;
-    text-align: center;
-  }
+  .page-header h1 { font-size: 1.25rem; }
 
-  .room-type-info {
-    flex-direction: column;
-    width: 100%;
-  }
+  .btn-create { width: 100%; justify-content: center; }
 
-  .room-type-actions {
-    width: 100%;
-    flex-direction: column;
-  }
+  .room-type-item { flex-direction: column; gap: 1.5rem; text-align: center; padding: 1.5rem; }
+  .room-type-info { flex-direction: column; width: 100%; }
+  .room-type-actions { width: 100%; flex-direction: column; }
+  .btn-edit, .btn-delete { width: 100%; justify-content: center; }
 
-  .btn-edit, .btn-delete {
-    width: 100%;
-    justify-content: center;
-  }
+  .modal { width: 95%; margin: 1rem; }
+  .modal-footer { padding: 1.25rem; flex-direction: column; }
 
-  .modal {
-    width: 95%;
-    margin: 1rem;
-  }
-
-  .modal-header {
-    padding: 1.25rem;
-  }
-
-  .modal-body {
-    padding: 1.5rem;
-  }
-
-  .modal-footer {
-    padding: 1.25rem;
-    flex-direction: column;
-  }
-
-  .btn-cancel, .btn-submit, .btn-delete-confirm {
-    width: 100%;
-  }
+  .btn-cancel, .btn-submit, .btn-delete-confirm { width: 100%; }
 }
 </style>

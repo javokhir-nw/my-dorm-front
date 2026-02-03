@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/auth'
 import { setupApiInterceptor } from './utils/ApiInterceptor.js'
+import can from './directives/can.js'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -11,32 +12,25 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Auth store setup
-const authStore = useAuthStore()
+// ✅ directive mount'dan oldin
+app.directive('can', can)
 
-// App load bo'lganida token tekshir
+// ✅ store endi pinia active bo'lgandan keyin ishlaydi
+const authStore = useAuthStore()
 authStore.checkAuth()
 
-// Axios interceptor setup
 setupApiInterceptor()
 
-// Router guard setup
 router.beforeEach((to, from, next) => {
-    // Login va register public
+    // Public routes
     if (to.path === '/login' || to.path === '/register' || to.path === '/') {
         next()
         return
     }
 
-    // ✅ MUHIM - Token expired tekshir
-    if (authStore.isTokenExpired(authStore.token)) {
-        authStore.logout()
-        next('/login')
-        return
-    }
-
-    // Token bo'lmasa login'ga o'tkazish
+    // ✅ Bitta joydan tekshiruv: expired + yo'q token ham shu yerda
     if (!authStore.isAuthenticated) {
+        authStore.logout()
         next('/login')
         return
     }

@@ -44,6 +44,16 @@ function goBack() {
 function viewAttendanceDetail(attendanceId) {
   router.push(`/attendance/${attendanceId}`)
 }
+function formatDate(date) {
+  const d = new Date(date);
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0'); // 0-based
+  const year = d.getFullYear();
+
+  return `${day}-${month}-${year}`;
+}
+
 
 // ✅ YO'ZGARTIRILDI - axios dan ishlash (baseURL avtomatik)
 async function fetchAttendances() {
@@ -58,7 +68,7 @@ async function fetchAttendances() {
         value: searchQuery.value || null,
         dormId: filterDormId.value,
         floorId: filterFloorId.value,
-        date: selectedDate.value
+        date: formatDate(selectedDate.value)
       }
     })
 
@@ -369,7 +379,6 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
 <style scoped>
 .page-container {
   min-height: 100vh;
@@ -384,7 +393,7 @@ onMounted(() => {
   margin-bottom: 1.5rem;
   margin-left: 5%;
   background: white;
-  padding: 1.5rem 2rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -392,29 +401,58 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-title__icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  color: white;
+  padding: 0.35rem;
+  flex-shrink: 0;
+}
+
+.page-title__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-title h1 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .back-button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.85rem;
   background: #f0f0f0;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
   color: #667eea;
   transition: all 0.3s;
+  height: fit-content;
+  white-space: nowrap;
 }
 
 .back-button:hover {
   background: #667eea;
   color: white;
-}
-
-.page-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 1.8rem;
 }
 
 /* Search and Filters */
@@ -829,16 +867,32 @@ onMounted(() => {
 
   .page-header {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-left: 0;
+    padding: 0.6rem 1rem;
   }
 
   .header-left {
     width: 100%;
   }
 
-  .page-header h1 {
-    font-size: 1.5rem;
+  .page-title h1 {
+    font-size: 1rem;
+  }
+
+  .page-title__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .page-title__icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .back-button {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
   }
 
   .search-box {

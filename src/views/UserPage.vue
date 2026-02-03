@@ -1281,12 +1281,38 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+
+  margin-bottom: 1rem;
   margin-left: 5%;
+
   background: white;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* ✅ Qo‘shildi: title blok */
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ✅ Qo‘shildi: ikonka konteyneri */
+.page-title__icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+}
+
+/* ✅ scoped bo‘lgani uchun deep ishlatamiz */
+.page-title__icon :deep(svg) {
+  width: 20px !important;
+  height: 20px !important;
+  display: block;
 }
 
 .header-left {
@@ -1296,7 +1322,7 @@ onMounted(() => {
 }
 
 .back-button {
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.9rem; /* ✅ biroz ixcham */
   background: #f0f0f0;
   border: none;
   border-radius: 8px;
@@ -1311,14 +1337,16 @@ onMounted(() => {
   color: white;
 }
 
+/* ✅ h1 ni kichraytirdik + line-height */
 .page-header h1 {
   margin: 0;
   color: #333;
-  font-size: 1.8rem;
+  font-size: 1.25rem;  /* old: 1.8rem */
+  line-height: 1.2;
 }
 
 .btn-create {
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.25rem;
   background: #10b981;
   color: white;
   border: none;
@@ -1326,7 +1354,7 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .btn-create:hover {

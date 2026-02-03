@@ -569,7 +569,7 @@ onMounted(() => {
   margin-bottom: 1.5rem;
   margin-left: 5%;
   background: white;
-  padding: 1.5rem 2rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -577,18 +577,53 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-title__icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  color: white;
+  padding: 0.35rem;
+  flex-shrink: 0;
+}
+
+.page-title__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-title h1 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .back-button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.85rem;
   background: #f0f0f0;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
   color: #667eea;
   transition: all 0.3s;
+  height: fit-content;
+  white-space: nowrap;
 }
 
 .back-button:hover {
@@ -596,14 +631,8 @@ onMounted(() => {
   color: white;
 }
 
-.page-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 1.8rem;
-}
-
 .btn-create {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   background: #10b981;
   color: white;
   border: none;
@@ -611,7 +640,11 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-create:hover {
@@ -776,7 +809,7 @@ onMounted(() => {
 .dormitories-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;  /* ✅ 1rem dan 0.75rem ga */
+  gap: 0.75rem;
   margin-bottom: 2rem;
 }
 
@@ -788,7 +821,7 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s;
-  min-height: 70px;  /* ✅ Qo'shildi - minimal balandlik */
+  min-height: 70px;
 }
 
 .dorm-list-item:hover {
@@ -802,19 +835,19 @@ onMounted(() => {
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  font-size: 1.2rem;  /* ✅ 1.5rem dan 1.2rem ga */
+  font-size: 1.2rem;
   font-weight: bold;
-  min-width: 55px;  /* ✅ 70px dan 55px ga */
-  padding: 0.75rem;  /* ✅ 1.5rem 1rem dan 0.75rem ga */
+  min-width: 55px;
+  padding: 0.75rem;
 }
 
 .dorm-list-content {
   flex: 1;
-  padding: 0.75rem 1rem;  /* ✅ Vertical kichikroq */
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: center;
   flex-direction: column;
-  gap: 0.5rem;  /* ✅ 1rem dan 0.5rem ga */
+  gap: 0.5rem;
 }
 
 .dorm-list-header {
@@ -827,38 +860,38 @@ onMounted(() => {
 
 .dorm-list-name {
   margin: 0;
-  font-size: 1.1rem;  /* ✅ 1.3rem dan 1.1rem ga */
+  font-size: 1.1rem;
   color: #333;
   font-weight: 700;
-  line-height: 1.2;  /* ✅ Qo'shildi */
+  line-height: 1.2;
 }
 
 .dorm-list-floors {
   background: #667eea;
   color: white;
-  padding: 0.3rem 0.7rem;  /* ✅ 0.4rem 0.8rem dan kichikroq */
+  padding: 0.3rem 0.7rem;
   border-radius: 20px;
-  font-size: 0.8rem;  /* ✅ 0.85rem dan 0.8rem ga */
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
 .dorm-list-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;  /* ✅ 0.75rem dan 0.5rem ga */
+  gap: 0.5rem;
 }
 
 .dorm-detail-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;  /* ✅ 1rem dan 0.75rem ga */
+  gap: 0.75rem;
 }
 
 .detail-label {
-  font-size: 0.85rem;  /* ✅ 0.9rem dan 0.85rem ga */
+  font-size: 0.85rem;
   color: #666;
   font-weight: 500;
-  min-width: 120px;  /* ✅ 140px dan 120px ga */
+  min-width: 120px;
   flex-shrink: 0;
 }
 
@@ -873,23 +906,23 @@ onMounted(() => {
 .manager-badge {
   background: #eff6ff;
   color: #1e40af;
-  padding: 0.3rem 0.7rem;  /* ✅ 0.4rem 0.8rem dan kichikroq */
+  padding: 0.3rem 0.7rem;
   border-radius: 6px;
-  font-size: 0.8rem;  /* ✅ 0.85rem dan 0.8rem ga */
+  font-size: 0.8rem;
   font-weight: 500;
   border: 1px solid #bfdbfe;
 }
 
 .dorm-list-actions {
   display: flex;
-  flex-direction: row;  /* ✅ column dan row ga */
-  gap: 0.5rem;  /* ✅ Gorizontal gap */
-  padding: 0.75rem 1rem;  /* ✅ Gorizontal padding */
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
   background: #f8f9fa;
   border-left: 1px solid #e0e0e0;
-  min-width: auto;  /* ✅ 50px emas, auto */
+  min-width: auto;
   justify-content: center;
-  align-items: center;  /* ✅ Qo'shildi */
+  align-items: center;
 }
 
 .btn-action {
@@ -901,7 +934,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;  /* ✅ Qo'shildi - kichraymaslik uchun */
+  flex-shrink: 0;
 }
 
 .btn-action svg {
@@ -1270,20 +1303,37 @@ onMounted(() => {
 
   .page-header {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-left: 0;
+    padding: 0.6rem 1rem;
   }
 
   .header-left {
     width: 100%;
   }
 
-  .page-header h1 {
-    font-size: 1.4rem;
+  .page-title h1 {
+    font-size: 1rem;
+  }
+
+  .page-title__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .page-title__icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .back-button {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
   }
 
   .btn-create {
     width: 100%;
+    font-size: 0.85rem;
   }
 
   .search-box {
