@@ -1,5 +1,4 @@
 <script setup>
-// Router-view avtomatik ravishda sahifalarni ko'rsatadi
 </script>
 
 <template>
@@ -9,7 +8,6 @@
 </template>
 
 <style>
-/* Global stillar */
 #app {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

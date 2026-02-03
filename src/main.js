@@ -12,10 +12,8 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// ✅ directive mount'dan oldin
 app.directive('can', can)
 
-// ✅ store endi pinia active bo'lgandan keyin ishlaydi
 const authStore = useAuthStore()
 authStore.checkAuth()
 
@@ -28,7 +26,6 @@ router.beforeEach((to, from, next) => {
         return
     }
 
-    // ✅ Bitta joydan tekshiruv: expired + yo'q token ham shu yerda
     if (!authStore.isAuthenticated) {
         authStore.logout()
         next('/login')
