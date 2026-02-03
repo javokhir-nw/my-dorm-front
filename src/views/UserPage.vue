@@ -90,7 +90,52 @@ const editLoading = ref(false)
 const deleteLoading = ref(false)
 
 // ✅ COMPUTED - totalPages calculation
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+const totalPages = computed(() => {
+  if (total.value === 0) return 1
+  return Math.ceil(total.value / pageSize.value)
+})
+
+// ✅ COMPUTED - Visible page numbers (smart pagination)
+const visiblePages = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    // Agar jami sahifalar 7 yoki undan kam bo'lsa, hammasini ko'rsatamiz
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Ko'proq sahifalar bo'lsa, aqlli ko'rsatish
+    if (current <= 4) {
+      // Boshida
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total)
+    } else if (current >= total - 3) {
+      // Oxirida
+      pages.push(1)
+      pages.push('...')
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      // O'rtada
+      pages.push(1)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total)
+    }
+  }
+
+  return pages
+})
 
 // ✅ COMPUTED - Check if filters active
 const hasActiveFilters = computed(() => {
@@ -127,6 +172,12 @@ async function fetchUsers() {
 
     users.value = response.data.list || []
     total.value = response.data.total || 0
+
+    // Agar joriy sahifa jami sahifalardan katta bo'lsa, oxirgi sahifaga o'tish
+    if (currentPage.value > totalPages.value && totalPages.value > 0) {
+      currentPage.value = totalPages.value
+      fetchUsers()
+    }
   } catch (err) {
     if (err.message !== 'Unauthorized - Session expired') {
       error.value = err.message || 'Server bilan bog\'lanishda xatolik!'
@@ -247,8 +298,13 @@ function clearFilters() {
   fetchUsers()
 }
 
+// ✅ YANGILANGAN - Sahifaga o'tish funksiyasi
 function goToPage(page) {
-  if (page >= 1 && page <= totalPages.value) {
+  // Agar page '...' bo'lsa, hech narsa qilmaymiz
+  if (page === '...') return
+
+  // Sahifa raqami to'g'riligini tekshirish
+  if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
     currentPage.value = page
     fetchUsers()
   }
@@ -551,6 +607,12 @@ async function deleteUser() {
 
     closeDeleteModal()
     showSuccessMessage('Muvaffaqiyatli!', 'Foydalanuvchi muvaffaqiyatli o\'chirildi')
+
+    // Agar sahifada bitta element qolib, oldingi sahifaga qaytish
+    if (users.value.length === 1 && currentPage.value > 1) {
+      currentPage.value--
+    }
+
     fetchUsers()
   } catch (err) {
     closeDeleteModal()
@@ -812,7 +874,7 @@ onMounted(() => {
           </thead>
           <tbody>
           <tr v-for="(user, index) in users" :key="user.id">
-            <td>{{ index + 1 }}</td>
+            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
             <td class="user-name-cell">
               {{ user.lastName }} {{ user.firstName }} {{ user.middleName }}
             </td>
@@ -848,7 +910,7 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <!-- Pagination -->
+        <!-- ✅ YANGILANGAN PAGINATION -->
         <div class="pagination" v-if="totalPages > 1">
           <button
               @click="goToPage(currentPage - 1)"
@@ -859,14 +921,16 @@ onMounted(() => {
           </button>
 
           <div class="pagination-numbers">
-            <button
-                v-for="page in totalPages"
-                :key="page"
-                @click="goToPage(page)"
-                :class="['pagination-number', { active: page === currentPage }]"
-            >
-              {{ page }}
-            </button>
+            <template v-for="page in visiblePages" :key="page">
+              <span v-if="page === '...'" class="pagination-dots">...</span>
+              <button
+                  v-else
+                  @click="goToPage(page)"
+                  :class="['pagination-number', { active: page === currentPage }]"
+              >
+                {{ page }}
+              </button>
+            </template>
           </div>
 
           <button
@@ -876,6 +940,11 @@ onMounted(() => {
           >
             Keyingi →
           </button>
+        </div>
+
+        <!-- ✅ Pagination info -->
+        <div class="pagination-info">
+          Jami: {{ total }} ta | Sahifa {{ currentPage }} / {{ totalPages }}
         </div>
       </div>
     </div>
@@ -1281,25 +1350,20 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   margin-bottom: 1rem;
   margin-left: 5%;
-
   background: white;
   padding: 0.75rem 1.25rem;
   border-radius: 10px;
-
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* ✅ Qo‘shildi: title blok */
 .page-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-/* ✅ Qo‘shildi: ikonka konteyneri */
 .page-title__icon {
   width: 32px;
   height: 32px;
@@ -1308,7 +1372,6 @@ onMounted(() => {
   place-items: center;
 }
 
-/* ✅ scoped bo‘lgani uchun deep ishlatamiz */
 .page-title__icon :deep(svg) {
   width: 20px !important;
   height: 20px !important;
@@ -1322,7 +1385,7 @@ onMounted(() => {
 }
 
 .back-button {
-  padding: 0.45rem 0.9rem; /* ✅ biroz ixcham */
+  padding: 0.45rem 0.9rem;
   background: #f0f0f0;
   border: none;
   border-radius: 8px;
@@ -1337,11 +1400,10 @@ onMounted(() => {
   color: white;
 }
 
-/* ✅ h1 ni kichraytirdik + line-height */
 .page-header h1 {
   margin: 0;
   color: #333;
-  font-size: 1.25rem;  /* old: 1.8rem */
+  font-size: 1.25rem;
   line-height: 1.2;
 }
 
@@ -1751,6 +1813,24 @@ onMounted(() => {
 .pagination-number.active {
   background: #667eea;
   color: white;
+}
+
+/* ✅ YANGI: Pagination dots */
+.pagination-dots {
+  padding: 0.5rem 0.75rem;
+  color: #999;
+  user-select: none;
+  font-weight: bold;
+}
+
+/* ✅ YANGI: Pagination info */
+.pagination-info {
+  text-align: center;
+  padding: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+  border-top: 1px solid #f0f0f0;
+  background: #f8f9fa;
 }
 
 .modal-overlay {
