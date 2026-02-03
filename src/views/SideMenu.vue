@@ -112,7 +112,7 @@ const canViewUsers = computed(() => hasPerm('view users'))
 const canViewRoomTypes = computed(() => hasPerm('view room-types'))
 const canViewAttendances = computed(() => hasPerm('view attendances'))
 const canViewDuties = computed(() => hasPerm('view duties'))
-const canViewRoles = computed(() => true)
+const canViewRoles = computed(() => hasPerm('view roles'))
 
 const canSeeMalumotnoma = computed(() =>
     canViewDormitories.value ||
