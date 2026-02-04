@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'  // ✅ ADD THIS
+import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -22,37 +22,28 @@ const isCheckingUsername = ref(false)
 const isUsernameValid = ref(false)
 const usernameError = ref('')
 
-// ✅ YO'ZGARTIRILDI - axios dan ishlash
-watch(username, async (newUsername) => {
-  if (!newUsername || newUsername.length < 3) {
+watch(username, async (val) => {
+  if (!val || val.length < 3) {
     isUsernameValid.value = false
     usernameError.value = ''
     return
   }
 
   isCheckingUsername.value = true
-  usernameError.value = ''
-
   try {
-    const response = await axios.get('/api/auth/check-exist-username', {
-      params: {
-        username: newUsername
-      }
+    const res = await axios.get('/api/auth/check-exist-username', {
+      params: { username: val }
     })
-
-    const isAvailable = response.data
-
-    if (isAvailable === true) {
+    if (res.data === true) {
       isUsernameValid.value = true
       usernameError.value = ''
     } else {
       isUsernameValid.value = false
-      usernameError.value = 'Bu username band qilingan!'
+      usernameError.value = 'Bu username band!'
     }
-  } catch (error) {
-    console.error('Username tekshirishda xatolik:', error)
+  } catch {
     isUsernameValid.value = false
-    usernameError.value = 'Tekshirishda xatolik yuz berdi'
+    usernameError.value = 'Tekshirishda xatolik'
   } finally {
     isCheckingUsername.value = false
   }
@@ -62,22 +53,22 @@ async function handleRegister() {
   error.value = ''
 
   if (!firstName.value || !lastName.value || !username.value || !password.value || !confirmPassword.value) {
-    error.value = 'Majburiy maydonlarni to\'ldiring!'
+    error.value = 'Majburiy maydonlarni to‘ldiring!'
     return
   }
 
   if (!isUsernameValid.value) {
-    error.value = 'Username band qilingan yoki noto\'g\'ri!'
+    error.value = 'Username noto‘g‘ri yoki band!'
     return
   }
 
   if (password.value.length < 6) {
-    error.value = 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak!'
+    error.value = 'Parol kamida 6 ta belgidan iborat bo‘lishi kerak'
     return
   }
 
   if (password.value !== confirmPassword.value) {
-    error.value = 'Parollar bir xil emas!'
+    error.value = 'Parollar mos emas'
     return
   }
 
@@ -106,185 +97,127 @@ async function handleRegister() {
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <div class="logo">
-        <h1 class="project-name">🏠 Mening yotoqxonam</h1>
-      </div>
-      
-      <h2>Ro'yxatdan o'tish</h2>
+      <h1 class="project-name">Mening yotoqxonam</h1>
       <p class="subtitle">Yangi hisob yarating</p>
 
       <form @submit.prevent="handleRegister">
         <div class="form-row">
           <div class="form-group">
-            <label for="firstName">Ism <span class="required">*</span></label>
-            <input
-              id="firstName"
-              v-model="firstName"
-              type="text"
-              placeholder="Ismingiz"
-              required
-            />
+            <label>Ism *</label>
+            <input v-model="firstName" type="text" />
           </div>
-
           <div class="form-group">
-            <label for="lastName">Familiya <span class="required">*</span></label>
-            <input
-              id="lastName"
-              v-model="lastName"
-              type="text"
-              placeholder="Familiyangiz"
-              required
-            />
+            <label>Familiya *</label>
+            <input v-model="lastName" type="text" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="middleName">Otasining ismi</label>
-          <input
-            id="middleName"
-            v-model="middleName"
-            type="text"
-            placeholder="Otangizning ismi"
-          />
+          <label>Otasining ismi</label>
+          <input v-model="middleName" type="text" />
         </div>
 
         <div class="form-group">
-          <label for="username">Username <span class="required">*</span></label>
+          <label>Username *</label>
           <div class="input-with-validation">
             <input
-              id="username"
-              v-model="username"
-              type="text"
-              placeholder="Username tanlang"
-              :class="{ 
-                'input-invalid': usernameError && username.length >= 3,
-                'input-valid': isUsernameValid && username.length >= 3
+                v-model="username"
+                type="text"
+                :class="{
+                'input-valid': isUsernameValid,
+                'input-invalid': usernameError
               }"
-              required
             />
-            <span v-if="isCheckingUsername" class="validation-icon checking">⏳</span>
-            <span v-else-if="isUsernameValid && username.length >= 3" class="validation-icon valid">✓</span>
-            <span v-else-if="usernameError && username.length >= 3" class="validation-icon invalid">✗</span>
+            <span v-if="isCheckingUsername" class="icon checking">⏳</span>
+            <span v-else-if="isUsernameValid" class="icon valid">✓</span>
+            <span v-else-if="usernameError" class="icon invalid">✗</span>
           </div>
-          <span v-if="usernameError && username.length >= 3" class="field-error">
-            {{ usernameError }}
-          </span>
-          <span v-else-if="isUsernameValid && username.length >= 3" class="field-success">
-            Username mavjud!
-          </span>
+          <small v-if="usernameError" class="field-error">{{ usernameError }}</small>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="password">Parol <span class="required">*</span></label>
-            <input
-              id="password"
-              v-model="password"
-              type="password"
-              placeholder="Kamida 6 ta belgi"
-              required
-            />
+            <label>Parol *</label>
+            <input v-model="password" type="password" />
           </div>
-
           <div class="form-group">
-            <label for="confirmPassword">Parolni tasdiqlang <span class="required">*</span></label>
-            <input
-              id="confirmPassword"
-              v-model="confirmPassword"
-              type="password"
-              placeholder="Parolni qayta kiriting"
-              required
-            />
+            <label>Parolni tasdiqlang *</label>
+            <input v-model="confirmPassword" type="password" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="telegramUsername">Telegram Username</label>
-          <input
-            id="telegramUsername"
-            v-model="telegramUsername"
-            type="text"
-            placeholder="@username"
-          />
+          <label>Telegram</label>
+          <input v-model="telegramUsername" type="text" />
         </div>
 
         <div class="form-group">
-          <label for="phone">Telefon raqam</label>
-          <input
-            id="phone"
-            v-model="phone"
-            type="tel"
-            placeholder="+998 90 123 45 67"
-          />
+          <label>Telefon</label>
+          <input v-model="phone" type="tel" />
         </div>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
+        <div v-if="error" class="error-message">{{ error }}</div>
 
-        <button 
-          type="submit" 
-          class="btn btn-primary" 
-          :disabled="loading || !isUsernameValid || isCheckingUsername"
+        <button
+            class="btn btn-primary"
+            :disabled="loading || !isUsernameValid || isCheckingUsername"
         >
-          {{ loading ? 'Yuklanmoqda...' : 'Ro\'yxatdan o\'tish' }}
+          {{ loading ? 'Yuklanmoqda...' : "Ro‘yxatdan o‘tish" }}
         </button>
       </form>
 
       <div class="auth-footer">
-        <p>
-          Hisobingiz bormi?
-          <router-link to="/login">Kirish</router-link>
-        </p>
+        Hisobingiz bormi?
+        <router-link to="/login">Kirish</router-link>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* BACKGROUND */
 .auth-container {
   min-height: 100vh;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  align-items: center;
+  background:
+      linear-gradient(rgba(102,126,234,.85), rgba(118,75,162,.85)),
+      url('src/images/bg.png') center / cover no-repeat;
   padding: 2rem 1rem;
 }
 
+/* CARD */
 .auth-card {
-  background: white;
-  padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 600px;
-}
-
-.logo {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
+  max-width: 620px;
+  padding: 2.8rem;
+  border-radius: 22px;
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  box-shadow: 0 25px 60px rgba(0,0,0,.25);
+  animation: fadeUp .8s ease-out both;
 }
 
 .project-name {
-  color: #667eea;
-  font-size: 1.8rem;
-  margin: 0;
-  font-weight: 700;
-}
-
-h2 {
-  color: #333;
-  margin-bottom: 0.5rem;
-  font-size: 1.6rem;
   text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: .3rem;
 }
 
 .subtitle {
-  color: #666;
-  margin-bottom: 2rem;
   text-align: center;
+  opacity: .9;
+  margin-bottom: 2rem;
+}
+
+/* FORM */
+input,
+button {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-row {
@@ -294,140 +227,85 @@ h2 {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.4rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: 500;
+  margin-bottom: .4rem;
 }
 
-.required {
-  color: #ff4757;
+input {
+  padding: .9rem 1rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  background: rgba(255,255,255,.95);
+  color: #333;
 }
 
 .input-with-validation {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-}
-
-input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.input-invalid {
-  border-color: #ff4757 !important;
-  background-color: #fff5f5;
-}
-
-.input-valid {
-  border-color: #2ecc71 !important;
-  background-color: #f0fff4;
-}
-
-.validation-icon {
+.icon {
   position: absolute;
   right: 1rem;
-  font-size: 1.2rem;
-  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.validation-icon.checking {
-  color: #667eea;
-}
-
-.validation-icon.valid {
-  color: #2ecc71;
-  font-weight: bold;
-}
-
-.validation-icon.invalid {
-  color: #ff4757;
-  font-weight: bold;
-}
+.input-valid { border: 2px solid #2ecc71; }
+.input-invalid { border: 2px solid #ff4757; }
 
 .field-error {
-  display: block;
-  color: #ff4757;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
+  font-size: .85rem;
+  color: #ffd6d6;
 }
 
-.field-success {
-  display: block;
-  color: #2ecc71;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-}
-
+/* ERROR */
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 8px;
+  background: rgba(255,80,80,.18);
+  padding: .75rem;
+  border-radius: 10px;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
 }
 
-.btn {
-  width: 100%;
-  padding: 0.875rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
+/* BUTTON */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: .95rem;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: linear-gradient(135deg,#fff,#f3f4ff);
+  color: #5b5bd6;
+  transition: .25s;
 }
 
 .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 14px 35px rgba(102,126,234,.55);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: #ccc;
+  opacity: .6;
 }
 
+/* FOOTER */
 .auth-footer {
-  margin-top: 1.5rem;
   text-align: center;
-  color: #666;
+  margin-top: 1.5rem;
 }
 
-.auth-footer a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.auth-footer a:hover {
-  text-decoration: underline;
+/* ANIM */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 600px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
+  .form-row { grid-template-columns: 1fr; }
 }
 </style>

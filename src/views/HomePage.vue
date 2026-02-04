@@ -1,93 +1,34 @@
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import SideMenu from "./SideMenu.vue";
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const isMenuOpen = ref(false)
-const isMalumotnomaDrop = ref(false)
-
-function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value
-}
-
-function toggleMalumotnoma() {
-  isMalumotnomaDrop.value = !isMalumotnomaDrop.value
-}
-
-function goToLogin() {
-  router.push('/login')
-  isMenuOpen.value = false
-}
-
-function goToRegister() {
-  router.push('/register')
-  isMenuOpen.value = false
-}
-
-function goToDashboard() {
-  router.push('/dashboard')
-  isMenuOpen.value = false
-}
-
-function goToSettings() {
-  router.push('/settings')
-  isMenuOpen.value = false
-}
-
-function goToDormitories() {
-  router.push('/dormitories')
-  isMenuOpen.value = false
-  isMalumotnomaDrop.value = false
-}
-
-function handleLogout() {
-  authStore.logout()
-  isMenuOpen.value = false
-}
+const goToLogin = () => router.push('/login')
+const goToRegister = () => router.push('/register')
+const goToDashboard = () => router.push('/dashboard')
 </script>
 
 <template>
   <div class="home-container">
-    <!-- Hamburger Menu Button -->
-    <button class="menu-button" @click="toggleMenu">
-      <span class="hamburger-icon" :class="{ open: isMenuOpen }">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
-    </button>
-
-    <!-- Side Menu -->
-    <SideMenu/>
-    <!-- Overlay -->
-    <div
-        class="overlay"
-        :class="{ show: isMenuOpen }"
-        @click="toggleMenu"
-    ></div>
-
-    <!-- Main Content -->
     <div class="hero">
       <h1 class="project-name">Mening yotoqxonam</h1>
       <p class="tagline">Yotoqxona boshqaruv tizimi</p>
 
       <div v-if="authStore.isAuthenticated" class="logged-in">
         <p>Salom, {{ authStore.currentUser?.firstName }}!</p>
-        <button @click="goToDashboard" class="btn btn-primary">
-          Dashboard ga o'tish
+        <button class="btn btn-primary" @click="goToDashboard">
+          Dashboard ga o‘tish
         </button>
       </div>
 
       <div v-else class="action-buttons">
-        <button @click="goToLogin" class="btn btn-primary">
+        <button class="btn btn-primary" @click="goToLogin">
           Kirish
         </button>
-        <button @click="goToRegister" class="btn btn-secondary">
-          Ro'yxatdan o'tish
+        <button class="btn btn-secondary" @click="goToRegister">
+          Ro‘yxatdan o‘tish
         </button>
       </div>
     </div>
@@ -95,329 +36,176 @@ function handleLogout() {
 </template>
 
 <style scoped>
+/* =====================
+   BACKGROUND
+===================== */
 .home-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  overflow-x: hidden;
-}
-
-/* Hamburger Menu Button */
-.menu-button {
-  position: fixed;
-  top: 1.5rem;
-  left: 1.5rem;
-  z-index: 1001;
-  background: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s;
-}
-
-.menu-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.hamburger-icon {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 24px;
-  height: 20px;
-}
-
-.hamburger-icon span {
-  display: block;
-  width: 100%;
-  height: 3px;
-  background: #667eea;
-  border-radius: 2px;
-  transition: all 0.3s;
-}
-
-.hamburger-icon.open span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.hamburger-icon.open span:nth-child(2) {
-  opacity: 0;
-}
-
-.hamburger-icon.open span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-/* Side Menu */
-.side-menu {
-  position: fixed;
-  top: 0;
-  left: -320px;
-  width: 320px;
-  height: 100vh;
-  background: white;
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-  z-index: 1002;
-  transition: left 0.3s ease;
-  overflow-y: auto;
-}
-
-.side-menu.open {
-  left: 0;
-}
-
-.menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.menu-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.close-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  overflow: hidden;
+
+  background:
+      linear-gradient(
+          rgba(102, 126, 234, 0.85),
+          rgba(118, 75, 162, 0.85)
+      ),
+      url('src/images/bg.png') center / cover no-repeat;
 }
 
-.close-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
-
-.menu-nav {
-  padding: 1rem;
-}
-
-.user-info-menu {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.user-name {
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.25rem 0;
-}
-
-.user-username {
-  color: #667eea;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.menu-item {
-  width: 100%;
-  padding: 1rem;
-  background: white;
-  border: 2px solid #f0f0f0;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  text-align: left;
-  color: #333;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.menu-item:hover {
-  background: #f8f9fa;
-  border-color: #667eea;
-  transform: translateX(5px);
-}
-
-.menu-item.logout {
-  background: #fff5f5;
-  border-color: #ff4757;
-  color: #ff4757;
-}
-
-.menu-item.logout:hover {
-  background: #ff4757;
-  color: white;
-}
-
-/* Dropdown */
-.dropdown-wrapper {
-  margin-bottom: 0.5rem;
-}
-
-.dropdown-btn {
-  justify-content: space-between;
-}
-
-.dropdown-btn .arrow {
-  transition: transform 0.3s;
-  color: #667eea;
-  font-size: 0.85rem;
-}
-
-.dropdown-btn .arrow.rotated {
-  transform: rotate(180deg);
-}
-
-.dropdown-menu {
-  background: #f8f9fa;
-  border: 2px solid #f0f0f0;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  margin-top: -0.5rem;
-  padding: 0.5rem 0;
-}
-
-.dropdown-item {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.5rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-align: left;
-  color: #555;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dropdown-item:hover {
-  background: white;
-  color: #667eea;
-  padding-left: 3rem;
-}
-
-/* Overlay */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s;
-}
-
-.overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Hero Section */
+/* =====================
+   HERO
+===================== */
 .hero {
   text-align: center;
   padding: 3rem 2rem;
-  color: white;
-  z-index: 1;
-  position: relative;
+  color: #fff;
+  max-width: 720px;
+  width: 100%;
+
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+
+  animation: heroFadeUp 0.9s ease-out both;
 }
 
+/* =====================
+   TITLE
+===================== */
 .project-name {
-  font-size: 3.5rem;
-  margin: 0 0 0.5rem 0;
+  font-size: 3.4rem;
   font-weight: 700;
+  margin-bottom: 0.5rem;
+
+  animation: fadeIn 0.8s ease-out both;
+  animation-delay: 0.15s;
+
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
 }
 
+/* =====================
+   TAGLINE
+===================== */
 .tagline {
-  font-size: 1.3rem;
-  margin-bottom: 3rem;
+  font-size: 1.25rem;
   opacity: 0.95;
+  margin-bottom: 2.5rem;
+
+  animation: fadeIn 0.8s ease-out both;
+  animation-delay: 0.3s;
 }
 
-.action-buttons {
+/* =====================
+   BUTTONS
+===================== */
+.action-buttons,
+.logged-in {
   display: flex;
-  gap: 1rem;
   justify-content: center;
+  gap: 1rem;
   flex-wrap: wrap;
+
+  animation: fadeInUp 0.8s ease-out both;
+  animation-delay: 0.45s;
 }
 
 .logged-in {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  margin: 0 auto;
+  flex-direction: column;
 }
 
 .logged-in p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 1rem;
 }
 
+/* =====================
+   BUTTON STYLE
+===================== */
 .btn {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  padding: 0.9rem 2rem;
+  border-radius: 10px;
+  font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  border: none;
+  transition: all 0.25s ease;
 }
 
 .btn-primary {
-  background: white;
+  background: #fff;
   color: #667eea;
 }
 
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.35);
 }
 
 .btn-secondary {
   background: transparent;
-  color: white;
-  border: 2px solid white;
+  color: #fff;
+  border: 2px solid #fff;
 }
 
 .btn-secondary:hover {
-  background: white;
+  background: #fff;
   color: #667eea;
 }
 
+/* =====================
+   ANIMATIONS
+===================== */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =====================
+   MOBILE
+===================== */
 @media (max-width: 768px) {
   .project-name {
-    font-size: 2.5rem;
+    font-size: 2.4rem;
   }
 
   .tagline {
     font-size: 1.1rem;
   }
 
-  .side-menu {
-    width: 280px;
-    left: -280px;
+  .hero {
+    padding: 2.5rem 1.5rem;
   }
 }
+
 </style>
